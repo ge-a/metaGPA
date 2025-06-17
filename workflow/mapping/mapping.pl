@@ -1,0 +1,141 @@
+use strict;
+use warnings;
+use Cwd;
+use Getopt::Long;
+use Getopt::Long qw(GetOptions);
+use File::Temp qw(tempfile);
+use Bio::SeqIO;
+
+sub main {
+    my $config = parse_arguments();
+    my @commands;
+
+    $config{dirs}{mapping} = $config{dirs}{output} . "/mapping";
+
+    @commands = write_commands($config);
+
+    foreach my $command (@commands) {
+        print "Running command: $command\n";
+        system($command) == 0 or die "Failed to execute command: $command";
+    }
+    return 0;
+}
+
+sub parse_arguments {
+    my %config = (
+        dirs => {
+            output => "output",
+            mapping => "mapping"
+        },
+        input => {
+            control_reads_2 => "use_regex",
+            selection_reads_2 => "use_regex"
+        }
+        programs => {
+            mapping => "mapping_help.pl",
+            picard => "/mnt/home/ettwiller/anaconda3/share/picard-2.27.1-0/picard.jar";
+        }
+    );
+    GetOptions(
+        "control-reads-1=s" => \$config{input}{control_reads_1},
+        "control-reads-2=s" => \$config{input}{control_reads_2},
+        "selection-reads-1=s" => \$config{input}{selection_reads_1},
+        "selection-reads-2=s" => \$config{input}{selection_reads_2},
+        "output-dir=s" => \$config{dirs}{output},
+        "help|h" => \$config{help}
+    ) or usage();
+
+    if ($config{input}{control_reads_1}) {
+        $config{input}{control_reads_2} = construct_paired_filename($config{input}{control_reads_1})
+            if $config{input}{control_reads_2} eq "use_regex";
+    }
+    if ($config{input}{selection_reads_1}) {
+        $config{input}{selection_reads_2} = construct_paired_filename($config{input}{selection_reads_1})
+            if $config{input}{selection_reads_2} eq "use_regex";
+    }
+
+    $config{dirs}{mapping} = $config{dirs}{output}."/mapping";
+    system("mkdir -p $config->{dirs}{output}") unless -d $config->{dirs}{output};
+    system("mkdir -p $config->{dirs}{mapping}") unless -d $config->{dirs}{mapping};
+
+    usage() if $config{help};
+
+    return \%config;
+}
+
+sub usage {
+    print <<EOF;
+Usage: $0 [options]
+
+Required:
+    --control-reads-1 FILE      Forward reads for control sample
+    --selection-reads-1 FILE    Forward reads for selection sample
+    --output-dir DIR           Output directory path
+
+Optional:
+    --control-reads-2 FILE     Reverse reads for control sample (default: auto-detect)
+    --selection-reads-2 FILE   Reverse reads for selection sample (default: auto-detect)
+    --help                     Show this help message
+
+Example:
+    $0 --control-reads-1 control_1_val_1.fq.gz \\
+       --selection-reads-1 selection_1_val_1.fq.gz \\
+       --output-dir results
+EOF
+    exit(1);
+}
+
+sub construct_paired_filename {
+    my ($read1_file) = @_;
+    my $read2_file = $read1_file;
+    $read2_file =~ s/1_val_1.fq/2_val_2.fq/;
+    return $read2_file;
+}
+
+sub write_commands {
+    my ($config) = @_;
+    my @commands;
+
+    my $generic_control = $config->{input}{control_reads_1};
+    $generic_control =~ s/.1_val_1.fq.gz//;
+    $generic_control =~ s/.*\///g;
+
+    my $generic_selection = $config->{input}{selection_reads_1};
+    $generic_selection =~ s/.1_val_1.fq.gz//;
+    $generic_selection =~ s/.*\///g;
+
+    my $generic = $generic_control; $generic =~ s/control/experiment/;
+
+    my $assembly_final = $config->{dirs}{output}."/assembly/".$generic."control_and_selected.fasta";
+    my $control_bam = $config->{dirs}{mapping}."/".$generic_control."mapped_to_".$generic.".bam",
+    my $selection_bam = $config->{dirs}{mapping}."/".$generic_selection."mapped_to_".$generic.".bam",
+    my $control_dedup = $config->{dirs}{mapping}."/".$generic_control."mapped_to_".$generic."duplicated_remove.bam",
+    my $selection_dedup = $config->{dirs}{mapping}."/".$generic_selection."mapped_to_".$generic."duplicated_remove.bam",
+    my $control_stats = $config->{dirs}{mapping}."/".$generic_control."mapped_to_".$generic."duplicated_remove.txt",
+    my $selection_stats = $config->{dirs}{mapping}."/".$generic_selection."mapped_to_".$generic."duplicated_remove.txt";
+
+    push @commands, $config->{programs}{mapping}.
+        " --fq1 ".$config->{input}{control_reads_1}.
+        " --fq2 ".$config->{input}{control_reads_2}.
+        " --genome ".$assembly_final. 
+        " --out ".$control_bam;
+    push @commands, $config->{programs}{mapping}.
+        " --fq1 ".$config->{input}{selection_reads_1}.
+        " --fq2 ".$config->{input}{selection_reads_2}.
+        " --genome ".$assembly_final.
+        " --out ".$selection_bam; 
+    push @commands, "java -jar ".$config->{programs}{picard}.
+        " MarkDuplicates REMOVE_DUPLICATES=true".
+        " I=".$control_bam.
+        " O=".$control_dedup.
+        " M=".$control_stats;
+    push @commands, "java -jar ".$config->{programs}{picard}.
+        " MarkDuplicates REMOVE_DUPLICATES=true".
+        " I=".$control_bam.
+        " O=".$selection_dedup.
+        " M=".$selection_stats;
+    push @commands, "samtools index ".$control_dedup;
+    push @commands, "samtools index ".$selection_dedup;
+
+    return @commands;
+}
