@@ -1,6 +1,7 @@
 use strict;
 use Cwd;
 use Getopt::Long;
+use POSIX ":sys_wait_h";
 
 exit main();
 
@@ -36,25 +37,58 @@ sub main {
         $prefix =~ s/.1_val_1.fq.gz//; $prefix =~ s/.*\///g;
         $prefix =~ s/control/experiment/;
 
-        push @commands, "perl assembly/assembly.pl".
+        # Create commands
+        my $assembly_cmd = "perl assembly/assembly.pl".
             " --control-reads-1 ".$control_1.
             " --selection-reads-1 ".$selection_1.
-            " --output-dir ".$config->{dirs}{output} if $config->{commands}{do_assembly};
-        push @commands, "perl annotation/annotation.pl".
+            " --output-dir ".$config->{dirs}{output};
+        my $mapping_cmd = "perl mapping/mapping.pl".
+            " --control-reads-1 ".$control_1.
+            " --selection-reads-1 ".$selection_1.
+            " --output-dir ".$config->{dirs}{output};
+        my $annotation_cmd = "perl annotation/annotation.pl".
             " --prefix ".$prefix.
-            " --output-dir ".$config->{dirs}{output} if $config->{commands}{do_annotation};
-        push @commands, "perl mapping/mapping.pl".
-            " --control-reads-1 ".$control_1.
-            " --selection-reads-1 ".$selection_1.
-            " --output-dir ".$config->{dirs}{output} if $config->{commands}{do_mapping};
-        push @commands, "perl enrichment/enrichment.pl".
+            " --output-dir ".$config->{dirs}{output};
+        my $enrichment_cmd = "perl enrichment/enrichment.pl".
             " --generic-control ".$generic_control.
             " --generic-selection ".$generic_selection.
             " --prefix ".$prefix.
-            " --output-dir ".$config->{dirs}{output} if $config->{commands}{do_enrichment};
-        foreach my $command (@commands) {
-            print "Running command: $command\n";
-            system($command) == 0 or die "Failed to execute command: $command";
+            " --output-dir ".$config->{dirs}{output};
+
+        # Run assembly and mapping concurrently
+        my $assembly_pid = fork();
+        if ($assembly_pid == 0) {
+            # Child process for assembly
+            exec($assembly_cmd) if $config->{commands}{do_assembly};
+            exit(0);
+        }
+
+        my $mapping_pid = fork();
+        if ($mapping_pid == 0) {
+            # Child process for mapping
+            exec($mapping_cmd) if $config->{commands}{do_mapping};
+            exit(0);
+        }
+
+        # Wait for assembly to complete before starting annotation
+        waitpid($assembly_pid, 0) if $config->{commands}{do_assembly};
+        
+        # Start annotation after assembly completes
+        my $annotation_pid = fork();
+        if ($annotation_pid == 0) {
+            # Child process for annotation
+            exec($annotation_cmd) if $config->{commands}{do_annotation};
+            exit(0);
+        }
+
+        # Wait for both mapping and annotation to complete
+        waitpid($mapping_pid, 0) if $config->{commands}{do_mapping};
+        waitpid($annotation_pid, 0) if $config->{commands}{do_annotation};
+
+        # Run enrichment after both mapping and annotation complete
+        if ($config->{commands}{do_enrichment}) {
+            system($enrichment_cmd) == 0 
+                or die "Failed to execute command: $enrichment_cmd";
         }
     }
 
