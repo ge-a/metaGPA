@@ -116,7 +116,8 @@ sub parse_arguments {
         "help|h" => \$config{help}
     ) or usage();
 
-    make_unique_path($config{dirs}{output}) unless -d $config{dirs}{output};
+    $config{dirs}{output} = make_unique_path($config{dirs}{output});
+    system("mkdir -p $config{dirs}{output}") unless -d $config{dirs}{output};
     usage() if $config{help};
     usage() if (!defined($config{input}{control_fq}) || 
                 !defined($config{input}{selection_fq}));
@@ -150,12 +151,20 @@ EOF
 
 sub make_unique_path {
     my ($path) = @_;
+
+    my $output_dir = "../output";
+    system("mkdir -p $output_dir") unless -d $output_dir;
+
+    my $basename = $path;
+    $basename =~ s/.*\///g; 
+    my $full_path = "$output_dir/$basename";
+
     my $counter = 1;
-    my $unique_path = $path;
+    my $unique_path = $full_path;
     while (-e $unique_path) {
         $unique_path = "${path}_$counter";
         $counter++;
     }
-    system("mkdir -p $unique_path");
+
     return $unique_path;
 }
