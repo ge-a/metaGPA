@@ -19,32 +19,52 @@ sub main {
         $config->{commands}{do_enrichment} = "run";
     }
 
-    my @fastq_control = @{$config->{input}{control_fq}};
-    my @fastq_selection = @{$config->{input}{selection_fq}};
-    my $size = @fastq_control;
+    my @fastq_control1 = @{$config->{input}{control_1}};
+    my @fastq_selection1 = @{$config->{input}{selection_1}};
+    my @fastq_control2 = (defined $config->{input}{control_2}) ? @{$config->{input}{control_2}} : ();
+    my @fastq_selection2 = (defined $config->{input}{selection_2}) ? @{$config->{input}{selection_2}} : ();
+    my $size = @fastq_control1;
  
     for (my $i=0; $i<$size; $i++) {
         my @commands = ();
-        my $control_1 = $fastq_control[$i];
-        my $selection_1 = $fastq_selection[$i];
+        my $control_1 = $fastq_control1[$i];
+        my $selection_1 = $fastq_selection1[$i];
+        my $control2;
+        my $selection_2;
+        my $prefix = $control_1;
+        $prefix =~ s/.1_val_1.fq.gz//; $prefix =~ s/.*\///g;
         
+        # pass control1/2 and selection1/2 to process_fastq if 2 is empty str then we generate the file ourselves
+        if (defined $fastq_control2[$i] && $fastq_control2[$i] ne "") {
+            $control_1, $control2 = process_fastq($fastq_control1[$i], $fastq_control2[$i], $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
+        } else {
+            $control_1, $control2 = process_fastq($fastq_control1[$i], "", $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
+        }
+        if (defined $fastq_selection2[$i] && $fastq_selection2[$i] ne "") {
+            $selection_1, $selection_2 = process_fastq($fastq_selection1[$i], $fastq_selection2[$i], $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
+        } else {
+            $selection_1, $selection_2 = process_fastq($fastq_selection1[$i], "", $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
+        }
+        # enforce in readme that if 2 file unspecified then must have same basename as 1 file with 1 replaced by 2
+        # pass both files into assembly and mapping
+
         my $generic_control = $control_1;
         my $generic_selection = $selection_1;
         $generic_control =~ s/.1_val_1.fq.gz//; $generic_control =~ s/.*\///g;
         $generic_selection =~ s/.1_val_1.fq.gz//; $generic_selection =~ s/.*\///g;  
 
-        my $prefix = $control_1;
-        $prefix =~ s/.1_val_1.fq.gz//; $prefix =~ s/.*\///g;
-        $prefix =~ s/control/experiment/;
-
         # Create commands
         my $assembly_cmd = "perl assembly/assembly.pl".
             " --control-reads-1 ".$control_1.
+            " --control-reads-2 ".$control2.
             " --selection-reads-1 ".$selection_1.
+            " --selection-reads-2 ".$selection_2.
             " --output-dir ".$config->{dirs}{output};
         my $mapping_cmd = "perl mapping/mapping.pl".
             " --control-reads-1 ".$control_1.
+            " --control-reads-2 ".$control2.
             " --selection-reads-1 ".$selection_1.
+            " --selection-reads-2 ".$selection_2.
             " --output-dir ".$config->{dirs}{output};
         my $annotation_cmd = "perl annotation/annotation.pl".
             " --prefix ".$prefix.
@@ -98,6 +118,7 @@ sub main {
 sub parse_arguments {
     my %config = (
         commands => {
+            do_trim => "trim_galore",
             do_assembly => "",
             do_annotation => "",
             do_mapping => "",
@@ -106,12 +127,15 @@ sub parse_arguments {
     );
 
     GetOptions(
+        "trim|t=s" => \$config{commands}{do_trim},
         "assembly|A" => \$config{commands}{do_assembly},
         "annotation|AN" => \$config{commands}{do_annotation},
         "mapping|M" => \$config{commands}{do_mapping},
         "enrichment|E" => \$config{commands}{do_enrichment},
-        "control|c=s@" => \$config{input}{control_fq},
-        "selection|s=s@" => \$config{input}{selection_fq},
+        "control_1|c1=s@" => \$config{input}{control_1},
+        "selection_1|s1=s@" => \$config{input}{selection_1},
+        "control_2|c2=s@" => \$config{input}{control_2},
+        "selection_2|s2=s@" => \$config{input}{selection_2},
         "outdir|o=s" => \$config{dirs}{output},
         "help|h" => \$config{help}
     ) or usage();
@@ -119,8 +143,8 @@ sub parse_arguments {
     $config{dirs}{output} = make_unique_path($config{dirs}{output});
     system("mkdir -p $config{dirs}{output}") unless -d $config{dirs}{output};
     usage() if $config{help};
-    usage() if (!defined($config{input}{control_fq}) || 
-                !defined($config{input}{selection_fq}));
+    usage() if (!defined($config{input}{control_1}) || 
+                !defined($config{input}{selection_1}));
     return \%config;
 }
 
@@ -134,11 +158,12 @@ Required:
     --outdir, -o DIR          Output directory
 
 Optional:
+    --trim, -t <trimmer>      Specify trimmer to use (default: trim_galore)
     --assembly, -A            Run assembly steps
     --annotation, -AN         Run annotation steps
     --mapping, -M             Run mapping steps
     --enrichment, -E          Run enrichment analysis steps
-    --help, -h               Show this help message
+    --help, -h                Show this help message
 
 Example:
     $0 --control PF4.1_val_1.fq.gz \\
@@ -162,9 +187,38 @@ sub make_unique_path {
     my $counter = 1;
     my $unique_path = $full_path;
     while (-e $unique_path) {
-        $unique_path = "${path}_$counter";
+        $unique_path = "../output/${path}_$counter";
         $counter++;
     }
 
     return $unique_path;
+}
+
+sub process_fastq {
+    my ($fq_1, $fq_2, $generic, $outdir, $trim) = @_;
+
+    # compress fq to fq.gz if it is not already compressed
+    if ($fq_1 !~ /\.gz$/) {
+        system("gzip -c $fq_1 > $fq_1.gz") == 0 or die "Failed to compress $fq_1";
+        $fq_1 .= ".gz";
+    }
+
+    # if fq_2 is empty string, then we generate it from fq_1
+    if ($fq_2 eq "") {
+        $fq_2 = $fq_1;
+        $fq_2 =~ s/(?<=[._-])1(?=[._-]|$)/2/g;
+    }
+    
+    # run trim_galore if not another trimmer or none if empty string
+    if ($trim eq "trim_galore") {
+        my $command = "trim_galore --paired $fq_1 $fq_2 --basename $generic -o $outdir";
+        system($command) == 0 or die "Failed to run trim_galore: $command";
+        $fq_1 = "$generic.1_val_1.fq.gz";
+        $fq_2 = "$generic.2_val_2.fq.gz";
+    } else{
+        # if no valid trimmer is specified, we assume the files are already trimmed we do nothing
+        print "No valid trimmer specified, assuming files are already trimmed.\n";
+    }
+    
+    return ($fq_1, $fq_2);
 }
