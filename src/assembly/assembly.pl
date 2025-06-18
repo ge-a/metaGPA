@@ -10,16 +10,27 @@ exit main();
 
 sub main {
     my $config = parse_arguments();
-    my @commands;
-    my $prefix;
-    my $assembly_final_info;
-    my $translated_assembly_final;
+    my @commands = write_commands($config);
 
-    @commands = write_commands($config);
-
-    foreach my $command (@commands) {
-        print "Running command: $command\n";
-        system($command) == 0 or die "Failed to execute command: $command";
+    my @pids;
+    for my $i (0, 1) {
+        my $pid = fork();
+        if (!defined $pid) {
+            die "Failed to fork: $!";
+        } elsif ($pid == 0) {
+            print "Running command: $commands[$i]\n";
+            system($commands[$i]) == 0 or die "Failed to execute command: $commands[$i]";
+            exit(0);
+        } else {
+            push @pids, $pid;
+        }
+    }
+    for my $pid (@pids) {
+        waitpid($pid, 0);
+    }
+    for my $i (2 .. $#commands) {
+        print "Running command: $commands[$i]\n";
+        system($commands[$i]) == 0 or die "Failed to execute command: $commands[$i]";
     }
 }
 
