@@ -34,6 +34,7 @@ sub parse_arguments {
         programs => {
             mapping => "mapping_help.pl",
             picard => "/mnt/home/ettwiller/anaconda3/share/picard-2.27.1-0/picard.jar";
+            mapping_func => "bwa"
         }
     );
     GetOptions(
@@ -42,6 +43,7 @@ sub parse_arguments {
         "selection-reads-1=s" => \$config{input}{selection_reads_1},
         "selection-reads-2=s" => \$config{input}{selection_reads_2},
         "output-dir=s" => \$config{dirs}{output},
+        "mapping-func=s" => \$config{programs}{mapping_func},
         "help|h" => \$config{help}
     ) or usage();
 
@@ -75,6 +77,7 @@ Required:
 Optional:
     --control-reads-2 FILE     Reverse reads for control sample (default: auto-detect)
     --selection-reads-2 FILE   Reverse reads for selection sample (default: auto-detect)
+    --mapping-func FUNC        Mapping function to use (default: bwa)
     --help                     Show this help message
 
 Example:
@@ -118,11 +121,13 @@ sub write_commands {
         " --fq1 ".$config->{input}{control_reads_1}.
         " --fq2 ".$config->{input}{control_reads_2}.
         " --genome ".$assembly_final. 
+        " --mapping-func ".$config->{programs}{mapping_func}.
         " --out ".$control_bam;
     push @commands, $config->{programs}{mapping}.
         " --fq1 ".$config->{input}{selection_reads_1}.
         " --fq2 ".$config->{input}{selection_reads_2}.
         " --genome ".$assembly_final.
+        " --mapping-func ".$config->{programs}{mapping_func}.
         " --out ".$selection_bam; 
     push @commands, "java -jar ".$config->{programs}{picard}.
         " MarkDuplicates REMOVE_DUPLICATES=true".
