@@ -32,7 +32,7 @@ sub parse_arguments {
             selection_reads_2 => "use_regex"
         },
         programs => {
-            mapping => "mapping_help.pl",
+            mapping => "mapping/mapping_help.pl",
             picard => "/mnt/home/ettwiller/anaconda3/share/picard-2.27.1-0/picard.jar",
             mapping_func => "bwa"
         }
@@ -117,13 +117,13 @@ sub write_commands {
     my $control_stats = $config->{dirs}{mapping}."/".$generic_control."mapped_to_".$generic."duplicated_remove.txt",
     my $selection_stats = $config->{dirs}{mapping}."/".$generic_selection."mapped_to_".$generic."duplicated_remove.txt";
 
-    push @commands, $config->{programs}{mapping}.
+    push @commands, "perl ".$config->{programs}{mapping}.
         " --fq1 ".$config->{input}{control_reads_1}.
         " --fq2 ".$config->{input}{control_reads_2}.
         " --genome ".$assembly_final. 
         " --mapping-func ".$config->{programs}{mapping_func}.
         " --out ".$control_bam;
-    push @commands, $config->{programs}{mapping}.
+    push @commands, "perl ".$config->{programs}{mapping}.
         " --fq1 ".$config->{input}{selection_reads_1}.
         " --fq2 ".$config->{input}{selection_reads_2}.
         " --genome ".$assembly_final.

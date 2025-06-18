@@ -65,6 +65,7 @@ sub main {
             " --control-reads-2 ".$control2.
             " --selection-reads-1 ".$selection_1.
             " --selection-reads-2 ".$selection_2.
+            " --mapping-func ".$config->{mapping_func}.
             " --output-dir ".$config->{dirs}{output};
         my $annotation_cmd = "perl annotation/annotation.pl".
             " --prefix ".$prefix.
@@ -123,7 +124,8 @@ sub parse_arguments {
             do_annotation => "",
             do_mapping => "",
             do_enrichment => ""
-        }
+        },
+        mapping_func => "bwa", # add command line option to specify mapping function
     );
 
     GetOptions(
