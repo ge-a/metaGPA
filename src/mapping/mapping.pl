@@ -6,11 +6,11 @@ use Getopt::Long qw(GetOptions);
 use File::Temp qw(tempfile);
 use Bio::SeqIO;
 
+exit main();
+
 sub main {
     my $config = parse_arguments();
     my @commands;
-
-    $config{dirs}{mapping} = $config{dirs}{output} . "/mapping";
 
     @commands = write_commands($config);
 
@@ -30,10 +30,10 @@ sub parse_arguments {
         input => {
             control_reads_2 => "use_regex",
             selection_reads_2 => "use_regex"
-        }
+        },
         programs => {
             mapping => "mapping_help.pl",
-            picard => "/mnt/home/ettwiller/anaconda3/share/picard-2.27.1-0/picard.jar";
+            picard => "/mnt/home/ettwiller/anaconda3/share/picard-2.27.1-0/picard.jar",
             mapping_func => "bwa"
         }
     );
@@ -57,8 +57,8 @@ sub parse_arguments {
     }
 
     $config{dirs}{mapping} = $config{dirs}{output}."/mapping";
-    system("mkdir -p $config->{dirs}{output}") unless -d $config->{dirs}{output};
-    system("mkdir -p $config->{dirs}{mapping}") unless -d $config->{dirs}{mapping};
+    system("mkdir -p ".$config{dirs}{output}) unless -d $config{dirs}{output};
+    system("mkdir -p ".$config{dirs}{mapping}) unless -d $config{dirs}{mapping};
 
     usage() if $config{help};
 

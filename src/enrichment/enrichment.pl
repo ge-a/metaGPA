@@ -6,6 +6,8 @@ use Getopt::Long qw(GetOptions);
 use File::Temp qw(tempfile);
 use Bio::SeqIO;
 
+exit main();
+
 sub main {
     my $config = parse_arguments();
     my @commands;
