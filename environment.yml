@@ -1,0 +1,14 @@
+name: MetaGPA
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - SPAdes=4.0.0
+  - cd-hit=4.8.1
+  - hmmer=3.3.2
+  - bowtie2=2.4.1
+  - samtools=1.11
+  - bedtools=2.30.0
+  - perl=5.32.1
+  - bioperl=1.7.1
