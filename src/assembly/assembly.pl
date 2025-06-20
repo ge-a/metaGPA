@@ -38,7 +38,7 @@ sub parse_arguments {
     my %config = (
         params => {
             threads => 24,
-            memory => 900,
+            memory => 500,
             min_length => 500,
         },
         dirs => {
@@ -51,7 +51,7 @@ sub parse_arguments {
         },
         programs => {
             assembly => "metaspades.py",
-            clean_assembly => "clean_assembly.pl",
+            clean_assembly => "assembly/clean_assembly.pl",
         }
     );
     GetOptions(
@@ -79,7 +79,7 @@ sub parse_arguments {
         $config{programs}{assembly} = "rnaspades.py";
     }
     if ($config{programs}{assembly} eq "rnaspades.py") {
-        $config{programs}{clean_assembly} = "clean_assembly_RNA_spade.pl";
+        $config{programs}{clean_assembly} = "assembly/clean_assembly_RNA_spade.pl";
     }
 
     $config{dirs}{assembly} = $config{dirs}{output} . "/assembly";
@@ -175,7 +175,6 @@ sub write_commands {
         " -o ".$generic_prefix."control_and_selected.nd.fasta".
         " -c 0.95 -n 10 -M 0 -T ".$config->{params}{threads}.
         " -d 0 -r 1 -G 1 -g 1";
-    push @commands, "mv ".$generic_prefix."control_and_selected.nd.fasta.clstr ".$config->{dirs}{assembly}."/";
     push @commands, "samtools faidx ".$generic_prefix."control_and_selected.fasta";
     push @commands, "bwa index ".$generic_prefix."control_and_selected.fasta";
 
