@@ -35,18 +35,19 @@ my $command1;
 my $index = $genome.".bwt";
 
 if ($mapping_func eq "bwa") {
+	# This if statement never runs if I am not mistaken
 	if (!$index) { 
 		my $command0 = "bwa index $genome"; system($command0);
 	}
-	my $command1 = "bwa mem $genome $fq1 $fq2  > $sam";
+	$command1 = "bwa mem $genome $fq1 $fq2  > $sam";
 }
 elsif ($mapping_func eq "bowtie") {
 	my $command0 = "bowtie2-build -f $genome $genome > bowtie2-build.log";
 	system($command0);
-	my $command1 = "bowtie2 -x $genome -1 $fq1 -2 $fq2 -S $sam";
+	$command1 = "bowtie2 -x $genome -1 $fq1 -2 $fq2 -S $sam";
 }
 elsif ($mapping_func eq "bbmap") {
-	my $command1 = "bbmap.sh ref=$genome in1=$fq1 in2=$fq2 minid=0.90 maxindel=3 outm=$sam";
+	$command1 = "bbmap.sh ref=$genome in1=$fq1 in2=$fq2 minid=0.90 maxindel=3 outm=$sam";
 } else {
 	die "Unknown mapping function: $mapping_func. Supported functions are bwa, bowtie, and bbmap.";
 }
@@ -57,6 +58,7 @@ my $command3 = "samtools index $bam";
 system($command1);
 system($command2);
 system($command3);
+
 
 
 
