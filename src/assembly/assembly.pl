@@ -122,7 +122,7 @@ EOF
 sub construct_paired_filename {
     my ($read1_file) = @_;
     my $read2_file = $read1_file;
-    $read2_file =~ s/1_val_1.fq/2_val_2.fq/;
+    $read2_file =~ s/1_val_1.fq.gz/2_val_2.fq.gz/;
     return $read2_file;
 }
 
@@ -131,11 +131,11 @@ sub write_commands {
     my @commands;
     
     my $generic_control = $config->{input}{control_reads_1};
-    $generic_control =~ s/.1_val_1.fq//;
+    $generic_control =~ s/.1_val_1.fq.gz//;
     $generic_control =~ s/.*\///g;
 
     my $generic_selection = $config->{input}{selection_reads_1};
-    $generic_selection =~ s/.1_val_1.fq//;
+    $generic_selection =~ s/.1_val_1.fq.gz//;
     $generic_selection =~ s/.*\///g;
 
     my $generic = $generic_control; $generic =~ s/control/experiment/;
