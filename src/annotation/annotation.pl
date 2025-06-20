@@ -10,12 +10,8 @@ exit main();
 
 sub main {
     my $config = parse_arguments();
-    my @commands;
-
-    $config{dirs}{annotation} = $config{dirs}{output} . "/annotation";
-
-    @commands = write_commands($config);
-
+    my @commands = write_commands($config);
+    
     foreach my $command (@commands) {
         print "Running command: $command\n";
         system($command) == 0 or die "Failed to execute command: $command";
@@ -26,11 +22,11 @@ sub main {
 sub parse_arguments {
     my %config = (
         params => {
-            min_length => 500
+            min_length => 500,
         },
         dirs => {
             output => "output",
-            annotation => "annotation"
+            annotation => "annotation",
         },
         programs => {
             translate => "translate.pl",
