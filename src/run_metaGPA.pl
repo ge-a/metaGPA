@@ -76,7 +76,7 @@ sub main {
             " --prefix ".$prefix.
             " --output-dir ".$config->{dirs}{output};
 
-        # Run assembly and mapping concurrently
+        # Run assembly
         my $assembly_pid = fork();
         if ($assembly_pid == 0) {
             # Child process for assembly
@@ -84,6 +84,10 @@ sub main {
             exit(0);
         }
 
+        # Wait for assembly to complete before starting annotation and mapping
+        waitpid($assembly_pid, 0) if $config->{commands}{do_assembly};
+        
+        # Start mapping after assembly completes
         my $mapping_pid = fork();
         if ($mapping_pid == 0) {
             # Child process for mapping
@@ -91,9 +95,6 @@ sub main {
             exit(0);
         }
 
-        # Wait for assembly to complete before starting annotation
-        waitpid($assembly_pid, 0) if $config->{commands}{do_assembly};
-        
         # Start annotation after assembly completes
         my $annotation_pid = fork();
         if ($annotation_pid == 0) {
