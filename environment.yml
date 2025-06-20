@@ -12,3 +12,4 @@ dependencies:
   - bedtools=2.30.0
   - perl=5.32.1
   - bioperl=1.7.1
+  - bwa=0.7.18
