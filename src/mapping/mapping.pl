@@ -10,14 +10,33 @@ exit main();
 
 sub main {
     my $config = parse_arguments();
-    my @commands;
+    my @commands write_commands($config);
 
-    @commands = write_commands($config);
-
-    foreach my $command (@commands) {
-        print "Running command: $command\n";
-        system($command) == 0 or die "Failed to execute command: $command";
+    my $pid1 = fork();
+    if (!defined $pid1) {
+        die "Failed to fork: $!";
+    } elsif ($pid1 == 0) {
+        foreach my $i (0, 2, 4) {
+            print "Running command: $commands[$i]\n";
+            system($commands[$i]) == 0 or die "Failed to execute command: $commands[$i]";
+        }
+        exit(0);
     }
+    my $pid2 = fork();
+    if (!defined $pid2) {
+        die "Failed to fork: $!";
+    } elsif ($pid2 == 0) {
+        foreach my $i (1, 3, 5) {
+            print "Running command: $commands[$i]\n";
+            system($commands[$i]) == 0 or die "Failed to execute command: $commands[$i]";
+        }
+        exit(0);
+    }
+
+    # Wait for both child processes to finish
+    waitpid($pid1, 0);
+    waitpid($pid2, 0);
+
     return 0;
 }
 
