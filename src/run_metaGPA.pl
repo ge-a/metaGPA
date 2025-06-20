@@ -143,7 +143,10 @@ sub parse_arguments {
         "help|h" => \$config{help}
     ) or usage();
 
-    $config{dirs}{output} = make_unique_path($config{dirs}{output});
+    $config{dirs}{output} = make_unique_path($config{dirs}{output}, $config{commands}{do_assembly}, 
+                                                $config{commands}{do_annotation}, 
+                                                $config{commands}{do_mapping}, 
+                                                $config{commands}{do_enrichment});
     system("mkdir -p $config{dirs}{output}") unless -d $config{dirs}{output};
     usage() if $config{help};
     usage() if (!defined($config{input}{control_1}) || 
@@ -178,7 +181,7 @@ EOF
 }
 
 sub make_unique_path {
-    my ($path) = @_;
+    my ($path, $assemble, $annotate, $map, $enrich) = @_;
 
     my $output_dir = "../output";
     system("mkdir -p $output_dir") unless -d $output_dir;
@@ -193,7 +196,19 @@ sub make_unique_path {
         $unique_path = "../output/${path}_$counter";
         $counter++;
     }
-
+    my $prev_path = $unique_path; $prev_path =~ s/_(\d+)$/'_' . ($1 - 1)/e;
+    if ($assemble) {
+        return $unique_path;
+    }
+    if ($map && -e $prev_path."/assembly") {
+        return $prev_path;
+    }
+    if ($annotate && -e $prev_path."/assembly") {
+        return $prev_path;
+    }
+    if ($enrich && -e $prev_path."/assembly" && -e $prev_path."/mapping") {
+        return $prev_path;
+    }
     return $unique_path;
 }
 
