@@ -86,6 +86,7 @@ sub write_commands {
     my $hmmer4 = $config->{dirs}{output}."/annotation/".$prefix."control_and_selected_hmmer_format_TIGRFAM.tab";
     my $pfam = $config->{dirs}{enrichment}."/".$generic."control_and_selected_hmmer_format_PFAM.enriched";
     my $tigrfam = $config->{dirs}{enrichment}."/".$generic."control_and_selected_hmmer_format_TIGRFAM.enriched";
+    my $enrichment_info = $config->{dirs}{enrichment}."/".$generic."enrichment_info.txt";
 
     push @commands, "awk 'BEGIN{ OFS=\"\\t\"; }{ print \$1, 1, \$2, FILENAME, 100, \"+\"; }' ".
         $fai." | bedtools multicov -bed - -bams ".
@@ -98,13 +99,15 @@ sub write_commands {
     push @commands, "perl ".$config->{programs}{add_enrich}.
         " --fasta ".$assembly_final.
         " --enrichment ".$coverage_bed.
-        " --out ".$config->{dirs}{enrichment}."/".$generic."enrichment_info.txt";
+        " --out ".$enrichment_info;
     push @commands, "perl ".$config->{programs}{get_enrich}.
         " --pfam ".$hmmer2.
+        " --enrichment_txt ".$enrichment_info.
         " --out ".$pfam.
         " --cutoff 3";
     push @commands, "perl ".$config->{programs}{get_enrich}.
         " --pfam ".$hmmer4.
+        " --enrichment_txt ".$enrichment_info.
         " --out ".$tigrfam.
         " --cutoff 3";
     return @commands;
