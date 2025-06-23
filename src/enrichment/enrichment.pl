@@ -77,7 +77,6 @@ sub write_commands {
 
     my $fai = $config->{dirs}{output}."/assembly/".$prefix."control_and_selected.fasta.fai";
     my $assembly_final = $config->{dirs}{output}."/assembly/".$generic."control_and_selected.fasta";
-    my $assembly_final_info = $config->{dirs}{output}."/assembly/".$generic."control_and_selected_with_enrichment_info.fasta",
     my $control_bam = $config->{dirs}{output}."/mapping/".$config->{input}{control}."mapped_to_".$prefix.".bam";
     my $selection_bam = $config->{dirs}{output}."/mapping/".$config->{input}{selection}."mapped_to_".$prefix.".bam";
     my $control_dedup = $config->{dirs}{output}."/mapping/".$config->{input}{control}."mapped_to_".$generic."duplicated_remove.bam";
@@ -99,7 +98,7 @@ sub write_commands {
     push @commands, "perl ".$config->{programs}{add_enrich}.
         " --fasta ".$assembly_final.
         " --enrichment ".$coverage_bed.
-        " --out ".$assembly_final_info;
+        " --out ".$config->{dirs}{enrichment}."/".$generic."enrichment_info.txt";
     push @commands, "perl ".$config->{programs}{get_enrich}.
         " --pfam ".$hmmer2.
         " --out ".$pfam.
