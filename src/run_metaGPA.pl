@@ -128,7 +128,7 @@ sub parse_arguments {
         },
         mapping_func => "bwa", # add command line option to specify mapping function
     );
-
+    # add option to map to run from a specific directory --> will create a new directory if one already exists
     GetOptions(
         "trim|t=s" => \$config{commands}{do_trim},
         "assembly|A" => \$config{commands}{do_assembly},
@@ -215,16 +215,30 @@ sub make_unique_path {
 sub process_fastq {
     my ($fq_1, $fq_2, $generic, $outdir, $trim) = @_;
 
+    my $data_dir = "../data";
+    system("mkdir -p $data_dir") unless -d $data_dir;
+
     # compress fq to fq.gz if it is not already compressed
     if ($fq_1 !~ /\.gz$/) {
-        system("gzip -c $fq_1 > $fq_1.gz") == 0 or die "Failed to compress $fq_1";
-        $fq_1 .= ".gz";
+        die "File $fq_1 does not exist!" unless -e $fq_1;
+        my ($fq1_base) = $fq_1 =~ /([^\/]+)$/;  # get just the filename
+        my $fq1_gz = "$data_dir/$fq1_base.gz";
+        system("gzip -c $fq_1 > $fq1_gz") == 0 or die "Failed to compress $fq_1";
+        $fq_1 = $fq1_gz;
     }
 
     # if fq_2 is empty string, then we generate it from fq_1
     if ($fq_2 eq "") {
         $fq_2 = $fq_1;
         $fq_2 =~ s/(?<=[._-])1(?=[._-]|$)/2/g;
+    }
+
+    if ($fq_2 !~ /\.gz$/) {
+        die "File $fq_2 does not exist!" unless -e $fq_2;
+        my ($fq2_base) = $fq_2 =~ /([^\/]+)$/;  # get just the filename
+        my $fq2_gz = "$data_dir/$fq2_base.gz";
+        system("gzip -c $fq_2 > $fq2_gz") == 0 or die "Failed to compress $fq_2";
+        $fq_2 = $fq2_gz;
     }
     
     # run trim_galore if not another trimmer or none if empty string
