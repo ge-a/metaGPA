@@ -78,9 +78,6 @@ sub parse_arguments {
     if ($config{programs}{assembly} !~ /^(metaspades\.py)$/) {
         $config{programs}{assembly} = "rnaspades.py";
     }
-    if ($config{programs}{assembly} eq "rnaspades.py") {
-        $config{programs}{clean_assembly} = "assembly/clean_assembly_RNA_spade.pl";
-    }
 
     $config{dirs}{assembly} = $config{dirs}{output} . "/assembly";
     system("mkdir -p ".$config{dirs}{output}) unless -d $config{dirs}{output};
