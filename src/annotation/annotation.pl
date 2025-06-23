@@ -29,8 +29,8 @@ sub parse_arguments {
             annotation => "annotation",
         },
         programs => {
-            translate => "translate.pl",
-            hmmer => "run_hmmer.pl",
+            translate => "annotation/translate.pl",
+            hmmer => "annotation/run_hmmer.pl",
         }
     );
     GetOptions(
@@ -79,18 +79,18 @@ sub write_commands {
     my ($config) = @_;
     my @commands;
 
-    my $assembly_final_info = $config->{dirs}{output}."/assembly/".$config->{input}{prefix}."control_and_selected_with_enrichment_info.fasta";
+    my $assembly_file = $config->{dirs}{output}."/assembly/".$config->{input}{prefix}."control_and_selected.fasta";
     my $translated_assembly_final = $config->{dirs}{output}."/assembly/".$config->{input}{prefix}."control_and_selected.faa";
 
-    push @commands, $config->{programs}{translate}.
-        " --fasta ".$assembly_final_info.
+    push @commands, "perl ".$config->{programs}{translate}.
+        " --fasta ".$assembly_file.
         " --out ".$translated_assembly_final. 
         " --min_size ".$config->{params}{min_length};
-    push @commands, $config->{programs}{hmmer}.
+    push @commands, "perl ".$config->{programs}{hmmer}.
         " --faa ".$translated_assembly_final. 
         " --out1 ".$config->{dirs}{hmmer1}.
         " --out2 ".$config->{dirs}{hmmer2};
-    push @commands, $config->{programs}{hmmer}. 
+    push @commands, "perl ".$config->{programs}{hmmer}. 
         " --faa ".$translated_assembly_final.
         " --out1 ".$config->{dirs}{hmmer3}.
         " --out2 ".$config->{dirs}{hmmer4}. 
