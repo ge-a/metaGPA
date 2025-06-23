@@ -27,7 +27,7 @@ sub parse_arguments {
         },
         programs => {
             get_enrich => "enrichment/get_enriched.pl",
-            add_enrich => "enrichment/add_enrichment_to_fasta.pl",
+            add_enrich => "enrichment/write_enrichment.pl",
         },
     );
     GetOptions(

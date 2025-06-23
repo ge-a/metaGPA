@@ -49,10 +49,11 @@ sub write_enriched_fasta {
 
     while (my $seq = $seq_in->next_seq()) {
         my $id = $seq->id;
-        my $enrichment = $bed{$id};
+        my $enrichment_ref = $bed{$id};
         my $seqstr = $seq->seq;
         $id =~ s/cov_.*//;
-        print $info_fh ">$id\n$enrichment\n";
+        my $enrichment = $enrichment_ref ? join("\t", @$enrichment_ref) : "";
+        print $info_fh "$id\t$enrichment\n";
     }
     close $info_fh;
 }
@@ -69,14 +70,15 @@ sub parse_enrichment {
         my $enriched = $tmp[-1];
         my $id = $tmp[0];
         my $ratio = (($enriched+1)/($control+1)); # pseudocount
-        my $info = "control_".$control."_selected_".$enriched."_ratio_".$ratio;
+        my @info = ($control, $enriched, $ratio);
 
         if ($id2edgeR_pvalue) {
             my $logFC = $$id2edgeR_pvalue{$id}{"logFC"};
             my $Pvalue = $$id2edgeR_pvalue{$id}{"Pvalue"};
-            $info = $info."_logFC_".$logFC."_Pvalue_".$Pvalue;
+            push @info, $logFC, $Pvalue;
+
         }
-        $bed{$id} = $info;
+        $bed{$id} = \@info;
     }
     close $cov_fh;
     return %bed;
