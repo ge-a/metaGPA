@@ -41,8 +41,8 @@ sub parse_arguments {
     ) or usage();
 
     $config{dirs}{annotation} = $config{dirs}{output}."/annotation";
-    system("mkdir -p $config->{dirs}{output}") unless -d $config->{dirs}{output};
-    system("mkdir -p $config->{dirs}{annotation}") unless -d $config->{dirs}{annotation};
+    system("mkdir -p ".$config{dirs}{output}) unless -d $config{dirs}{output};
+    system("mkdir -p ".config{dirs}{annotation}) unless -d $config{dirs}{annotation};
 
     $config{dirs}{hmmer1} = $config{dirs}{annotation}."/".$config{input}{prefix}."control_and_selected_hmmer_format.hmmer"; 
     $config{dirs}{hmmer2} = $config{dirs}{annotation}."/".$config{input}{prefix}."control_and_selected_hmmer_format.tab";
