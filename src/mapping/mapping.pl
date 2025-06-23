@@ -10,7 +10,7 @@ exit main();
 
 sub main {
     my $config = parse_arguments();
-    my @commands write_commands($config);
+    my @commands = write_commands($config);
 
     my $pid1 = fork();
     if (!defined $pid1) {
