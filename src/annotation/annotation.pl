@@ -42,7 +42,7 @@ sub parse_arguments {
 
     $config{dirs}{annotation} = $config{dirs}{output}."/annotation";
     system("mkdir -p ".$config{dirs}{output}) unless -d $config{dirs}{output};
-    system("mkdir -p ".config{dirs}{annotation}) unless -d $config{dirs}{annotation};
+    system("mkdir -p ".$config{dirs}{annotation}) unless -d $config{dirs}{annotation};
 
     $config{dirs}{hmmer1} = $config{dirs}{annotation}."/".$config{input}{prefix}."control_and_selected_hmmer_format.hmmer"; 
     $config{dirs}{hmmer2} = $config{dirs}{annotation}."/".$config{input}{prefix}."control_and_selected_hmmer_format.tab";
@@ -79,12 +79,12 @@ sub write_commands {
     my ($config) = @_;
     my @commands;
 
-    my $assembly_final_info = $config{dirs}{output}."/assembly/".$config{input}{prefix}."control_and_selected_with_enrichment_info.fasta";
-    my $translated_assembly_final = $config{dirs}{output}."/assembly/".$config{input}{prefix}."control_and_selected.faa";
+    my $assembly_final_info = $config->{dirs}{output}."/assembly/".$config->{input}{prefix}."control_and_selected_with_enrichment_info.fasta";
+    my $translated_assembly_final = $config->{dirs}{output}."/assembly/".$config->{input}{prefix}."control_and_selected.faa";
 
     push @commands, $config->{programs}{translate}.
         " --fasta ".$assembly_final_info.
-        "--out ".$translated_assembly_final. 
+        " --out ".$translated_assembly_final. 
         " --min_size ".$config->{params}{min_length};
     push @commands, $config->{programs}{hmmer}.
         " --faa ".$translated_assembly_final. 
