@@ -76,6 +76,12 @@ sub parse_arguments {
             if $config{input}{selection_reads_2} eq "use_regex";
     }
     if ($config{programs}{assembly} !~ /^(metaspades\.py)$/) {
+        if ($config{programs}{assembly} !~ /^(rnaspades\.py)$/) {
+            print "Supported assemblers are metaspades.py and rnaspades.py.\n";
+            print "To use a different assembler please install the program\n";
+            print "and modify the script to include the correct command.\n";
+            exit(1);
+        }
         $config{programs}{assembly} = "rnaspades.py";
     }
 
