@@ -1,4 +1,5 @@
 use strict;
+use warnings;
 use Cwd;
 use Getopt::Long qw(GetOptions);
 use File::Temp qw(tempfile);
@@ -30,8 +31,11 @@ sub parse_pfam_file {
     while (my $line = <$pfam_fh>) {
         chomp $line;
         my @tmp = split /\s+/, $line;   
+        if ($tmp[0] !~ /^NODE_\d+_length_\d+_(?:selection|control)-\w+$/) {
+            next;
+        }
         my $contig = $tmp[0];
-        my $pfam_Evalue = $tmp[6];
+        my $pfam_Evalue = $tmp[6]; # Confirm if this is what is being referenced for creating an enrichment score distribution
         my $contig_name_to_check = $contig;
         $contig =~ s/((?:selection|control)).*$/$1/;
         my $control_reads = $enrichment_info->{$contig}[0];
