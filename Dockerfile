@@ -1,18 +1,18 @@
 # syntax=docker/dockerfile:1
 
-FROM continuumio/anaconda3
+FROM mambaforge/mambaforge:latest
 
 WORKDIR /src
 
 COPY environment.yml .
 
-RUN conda env create -f environment.yml && conda clean -afy
+RUN mamba env create -f environment.yml && mamba clean --all --yes
 
-SHELL ["conda", "run", "-n", "bioenv", "/bin/bash", "-c"]
+SHELL ["mamba", "run", "-n", "bioenv", "/bin/bash", "-c"]
 
 COPY . .
 
-RUN conda list
+RUN mamba run -n bioenv conda list
 
-ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "bioenv", "perl", "run_metaGPA.pl"]
+ENTRYPOINT ["mamba", "run", "--no-capture-output", "-n", "bioenv", "perl", "run_metaGPA.pl"]
 CMD ["--help"]

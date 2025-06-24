@@ -2,7 +2,6 @@ name: MetaGPA
 channels:
   - bioconda
   - conda-forge
-  - defaults
 dependencies:
   - SPAdes=4.0.0
   - cd-hit=4.8.1
@@ -11,6 +10,6 @@ dependencies:
   - samtools=1.11
   - bedtools=2.30.0
   - perl=5.32.1
-  - bioperl=1.7.1
+  - perl-bioperl
   - bwa=0.7.18
   - perl-math-cdf=0.1
