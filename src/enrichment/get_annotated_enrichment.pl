@@ -35,13 +35,13 @@ sub parse_pfam_file {
             next;
         }
         my $contig = $tmp[0];
-        my $pfam_Evalue = $tmp[6]; # Confirm if this is what is being referenced for creating an enrichment score distribution
+        my $pfam_Evalue = $tmp[6]; 
         my $contig_name_to_check = $contig;
         $contig =~ s/((?:selection|control)).*$/$1/;
         my $control_reads = $enrichment_info->{$contig}[0];
         my $enriched_reads = $enrichment_info->{$contig}[1];
         my $read_count = $control_reads + $enriched_reads;
-        my $ratio = $enrichment_info->{$contig}[2];
+        my $ratio = $enrichment_info->{$contig}[2]; # Confirm if this is what is being referenced for creating an enrichment score distribution
         $contig =~ /length_(\S+)_/;
         my $contig_length = $1;
         my $status ="rejected";

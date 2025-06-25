@@ -26,8 +26,8 @@ sub parse_arguments {
             mapping => "enrichment",
         },
         programs => {
-            get_enrich => "enrichment/get_enriched.pl",
-            add_enrich => "enrichment/write_enrichment.pl",
+            get_enrich => "enrichment/get_annotated_enrichment.pl",
+            add_enrich => "enrichment/get_enrichment_txt.pl",
         },
     );
     GetOptions(

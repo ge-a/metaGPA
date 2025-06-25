@@ -31,7 +31,7 @@ sub parse_args {
         "fasta=s"      => \$fasta,
         "enrichment=s" => \$enrichment,
         "out=s"        => \$out,
-        "edgR=s"       => \$edgeR
+        "edgR=s"       => \$edgeR, 
     ) or die $error_sentence;
 
     die $error_sentence unless $fasta && $enrichment && $out;
@@ -60,16 +60,25 @@ sub write_enriched_fasta {
 
 
 sub parse_enrichment {
-    my ($enrichment, $id2edgeR_pvalue) = @_;
+    my ($enrichment, $rpkm, $id2edgeR_pvalue) = @_;
     my %bed;
     open(my $cov_fh, "<", $enrichment) or die "Can't open $enrichment: $!";
     while (my $line = <$cov_fh>) {
         chomp $line;
         my @tmp = split /\t/, $line;
+        my $control_all = $tmp[-4];
+        my $enriched_all = $tmp[-3];
         my $control = $tmp[-2];
         my $enriched = $tmp[-1];
         my $id = $tmp[0];
+        my $length = $tmp[2] - 1;
+
+        my $rpkm_enriched = ($enriched * 1e6) / ($enriched_all * $length);
+        my $rpkm_control = ($control * 1e6) / ($control_all * $length);
+        my $rpkm_ratio = ($rpkm_enriched + 1) / ($rpkm_control + 1);
         my $ratio = (($enriched+1)/($control+1)); # pseudocount
+        $ratio  = $rpkm_ratio;
+
         my @info = ($control, $enriched, $ratio);
 
         if ($id2edgeR_pvalue) {
