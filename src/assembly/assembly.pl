@@ -180,6 +180,8 @@ sub write_commands {
         " -d 0 -r 1 -G 1 -g 1";
     push @commands, "samtools faidx ".$generic_prefix."control_and_selected.fasta";
     push @commands, "bwa index ".$generic_prefix."control_and_selected.fasta";
+    push @commands, "metaquast.py " . $generic_prefix."control_and_selected.fasta".
+        " -o ".$config->{dirs}{assembly}."/quast";
 
     return @commands
 }
