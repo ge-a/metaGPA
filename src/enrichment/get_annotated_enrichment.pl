@@ -14,14 +14,16 @@ sub main {
 
     my $hash_contig = $unwanted ? parse_bed($unwanted) : undef;
 
+    if ($cutoff == -1) {
+        $cutoff = get_cutoff_from_distribution($enrichment_file_path, 1);
+    }
+
     my ($result2, $result3, $pfam2desc) = parse_pfam_file($pfam, $enrichment_file_path, $hash_contig, $read_count_min, $contig_min, $pfam_cutoff, $cutoff, $direction);
     my $result4 = calculate_enrichment_stats($result2, $result3);
 
     open(my $out_fh, ">", $out) or die "Can't open $out\n";
     write_enrichment_output($result4, $pfam2desc, $TOTAL, $out_fh);
     close $out_fh;
-
-    print(get_cutoff_from_distribution($enrichment_file_path, 1)."\n");
 
     return 0;
 }
@@ -115,7 +117,7 @@ sub write_enrichment_output {
 sub parse_args {
     my $error_sentence = "USAGE : perl $0 --pfam pfam_tab --out output_file OPTIONAL : --cutoff 10 (default 3) --direction depleted (default enriched) --read_count_min 100 (total number of reads in control+enriched, default 0) --contig_min 500 (length of the contig in bp, default 0) --unwanted contif.bed (defaut NONE) --pfam_cutoff 0.0000001 (this is the pfam Evalue. Anything matching of below this cutoff is used, DEFAULT no cutoff) --pfam_number 10 (at least 10 instances of a particular pfam, DEFAULT=0)";
     my ($pfam, $enrichment_file_path, $out, $cutoff, $direction, $read_count_min, $contig_min, $unwanted, $pfam_cutoff, $TOTAL);
-    $cutoff = 0;
+    $cutoff = 3;
     $direction = "enriched";
     $read_count_min = 0;
     $contig_min = 0;

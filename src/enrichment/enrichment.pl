@@ -29,12 +29,14 @@ sub parse_arguments {
             get_enrich => "enrichment/get_annotated_enrichment.pl",
             add_enrich => "enrichment/get_enrichment_txt.pl",
         },
+        cutoff => 3,
     );
     GetOptions(
         "generic-control=s" => \$config{input}{control},
         "generic-selection=s" => \$config{input}{selection},
         "prefix=s" => \$config{prefix},
         "output-dir=s" => \$config{dirs}{output},
+        "cutoff=f" => \$config{cutoff},
         "help|h" => \$config{help}
     ) or usage();
     $config{dirs}{enrichment} = $config{dirs}{output}."/enrichment";
@@ -57,6 +59,7 @@ Required:
     --output-dir DIR         Output directory path
 
 Optional:
+    --cutoff FLOAT           Cutoff value for enrichment, if -1 calculated from distribution (default: 3)
     --help                   Show this help message
 
 Example:
@@ -106,11 +109,11 @@ sub write_commands {
         " --pfam ".$hmmer2.
         " --enrichment_txt ".$enrichment_info.
         " --out ".$pfam.
-        " --cutoff 3";
+        " --cutoff ".$config->{cutoff};
     push @commands, "perl ".$config->{programs}{get_enrich}.
         " --pfam ".$hmmer4.
         " --enrichment_txt ".$enrichment_info.
         " --out ".$tigrfam.
-        " --cutoff 3";
+        " --cutoff ".$config->{cutoff};
     return @commands;
 }

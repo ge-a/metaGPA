@@ -74,6 +74,7 @@ sub main {
             " --generic-control ".$generic_control.
             " --generic-selection ".$generic_selection.
             " --prefix ".$prefix.
+            " --cutoff ".$config->{cutoff}.
             " --output-dir ".$config->{dirs}{output};
 
         # Run assembly
@@ -127,6 +128,7 @@ sub parse_arguments {
             do_enrichment => ""
         },
         mapping_func => "bwa", # add command line option to specify mapping function
+        cutoff => 3, # default cutoff for enrichment analysis
     );
     # add option to map to run from a specific directory --> will create a new directory if one already exists
     GetOptions(
@@ -140,6 +142,7 @@ sub parse_arguments {
         "control_2|c2=s@" => \$config{input}{control_2},
         "selection_2|s2=s@" => \$config{input}{selection_2},
         "outdir|o=s" => \$config{dirs}{output},
+        "cutoff|c=f" => \$config{cutoff},
         "help|h" => \$config{help}
     ) or usage();
 
@@ -169,6 +172,7 @@ Optional:
     --annotation, -AN         Run annotation steps
     --mapping, -M             Run mapping steps
     --enrichment, -E          Run enrichment analysis steps
+    --cutoff -c FLOAT         Cutoff value for enrichment analysis (default: 3), if -1 then will be calculated from distribution
     --help, -h                Show this help message
 
 Example:
