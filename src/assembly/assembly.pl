@@ -5,6 +5,9 @@ use Getopt::Long;
 use Getopt::Long qw(GetOptions);
 use File::Temp qw(tempfile);
 use Bio::SeqIO;
+use utils qw(make_dir 
+            construct_paired_filename
+            append_assemblies);
 
 exit main();
 
@@ -86,8 +89,8 @@ sub parse_arguments {
     }
 
     $config{dirs}{assembly} = $config{dirs}{output} . "/assembly";
-    system("mkdir -p ".$config{dirs}{output}) unless -d $config{dirs}{output};
-    system("mkdir -p ".$config{dirs}{assembly}) unless -d $config{dirs}{assembly};
+    make_dir($config{dirs}{output});
+    make_dir($config{dirs}{assembly});
     
     usage() if $config{help};
 
@@ -120,13 +123,6 @@ Example:
        --output-dir results
 EOF
     exit(1);
-}
-
-sub construct_paired_filename {
-    my ($read1_file) = @_;
-    my $read2_file = $read1_file;
-    $read2_file =~ s/1_val_1.fq.gz/2_val_2.fq.gz/;
-    return $read2_file;
 }
 
 sub write_commands {

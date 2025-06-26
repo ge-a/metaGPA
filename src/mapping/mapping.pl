@@ -5,6 +5,8 @@ use Getopt::Long;
 use Getopt::Long qw(GetOptions);
 use File::Temp qw(tempfile);
 use Bio::SeqIO;
+use utils qw(make_dir 
+            construct_paired_filename);
 
 exit main();
 
@@ -63,7 +65,7 @@ sub parse_arguments {
         "selection-reads-2=s" => \$config{input}{selection_reads_2},
         "output-dir=s" => \$config{dirs}{output},
         "mapping-func=s" => \$config{programs}{mapping_func},
-        "help|h" => \$config{help}
+        "help|h" => \$config{help},
     ) or usage();
 
     if ($config{input}{control_reads_1}) {
@@ -76,8 +78,8 @@ sub parse_arguments {
     }
 
     $config{dirs}{mapping} = $config{dirs}{output}."/mapping";
-    system("mkdir -p ".$config{dirs}{output}) unless -d $config{dirs}{output};
-    system("mkdir -p ".$config{dirs}{mapping}) unless -d $config{dirs}{mapping};
+    make_dir($config{dirs}{output});
+    make_dir($config{dirs}{mapping});
 
     usage() if $config{help};
 
@@ -105,13 +107,6 @@ Example:
        --output-dir results
 EOF
     exit(1);
-}
-
-sub construct_paired_filename {
-    my ($read1_file) = @_;
-    my $read2_file = $read1_file;
-    $read2_file =~ s/1_val_1.fq/2_val_2.fq/;
-    return $read2_file;
 }
 
 sub write_commands {

@@ -5,6 +5,7 @@ use Getopt::Long;
 use Getopt::Long qw(GetOptions);
 use File::Temp qw(tempfile);
 use Bio::SeqIO;
+use utils qw(make_dir);
 
 exit main();
 
@@ -39,9 +40,10 @@ sub parse_arguments {
         "cutoff=f" => \$config{cutoff},
         "help|h" => \$config{help}
     ) or usage();
+    
     $config{dirs}{enrichment} = $config{dirs}{output}."/enrichment";
-    system("mkdir -p ".$config{dirs}{output}) unless -d $config{dirs}{output};
-    system("mkdir -p ".$config{dirs}{enrichment}) unless -d $config{dirs}{enrichment};
+    make_dir($config{dirs}{output});
+    make_dir($config{dirs}{enrichment});
 
     usage() if $config{help};
 
