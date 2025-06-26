@@ -53,7 +53,7 @@ sub parse_arguments {
             selection_reads_2 => "use_regex"
         },
         programs => {
-            mapping => "mapping/mapping_help.pl",
+            mapping => "mapping/run_dna_map.pl",
             picard => "/mnt/home/ettwiller/anaconda3/share/picard-2.27.1-0/picard.jar",
             mapping_func => "bwa"
         }
