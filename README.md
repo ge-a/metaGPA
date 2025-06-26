@@ -75,9 +75,8 @@ Here is a minimal example to get started with MetaGPA after installation:
 2. **Run the pipeline:**  
    ```bash
    perl src/run_metaGPA.pl \
-     --generic-control CONTROL_SAMPLE \
-     --generic-selection SELECTION_SAMPLE \
-     --prefix EXPERIMENT_NAME \
+     --control_1 CONTROL_SAMPLE \
+     --selection_1 SELECTION_SAMPLE \
      --output-dir results
    ```
 
@@ -95,16 +94,17 @@ perl src/run_metaGPA.pl --help
 ```
 
 Common options include:
-- `--control_1` : Name or path of the control 1 sample FASTQ file(s)
-- `--selection_1` : Name or path of the selection 1 sample FASTQ file(s)
-- `--output-dir` : Directory to store results
-- `--control_2` : (Optional) Name or path of the control 2 sample FASTQ file(s)
-- `--selection_2` : (Optional) Name or path of the selection 2 sample FASTQ file(s)
+- `--control_1, -c1` : Name or path of the control 1 sample FASTQ file(s)
+- `--selection_1, -s1` : Name or path of the selection 1 sample FASTQ file(s)
+- `--output-dir, -o` : Directory to store results
+- `--control_2, -c2` : (Optional) Name or path of the control 2 sample FASTQ file(s)
+- `--selection_2, -s2` : (Optional) Name or path of the selection 2 sample FASTQ file(s)
 - `--assembly, -A` : (Optional) Run assembly steps
 - `--annotation, -AN` : (Optional) Run annotation steps
 - `--mapping, -M` : (Optional) Run mapping steps
 - `--enrichment, -E` : (Optional) Run enrichment analysis steps
-- `--cutoff` : (Optional) Enrichment cutoff value
+- `--cutoff, -c` : (Optional) Enrichment cutoff value
+- `--trim, -t` : (Optional) Do we want to trim files before running pipeline
 - `--help` : Show help message
 
 Note that if none of assembly, annotation, mapping, or enrichment are specified, then all steps will be ran. If a downstream step is ran without necessary preceding steps the program will assume the previous steps were ran in the previously output results and look for necessary data files accordingly.
