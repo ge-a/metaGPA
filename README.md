@@ -20,7 +20,11 @@
 - [Contact](#contact)
 
 ## Overview
-Brief description of what MetaGPA does and its purpose.
+**MetaGPA (Metagenomics -GenomePhenome Association)** pipeline is used to link genetic information (e.g. genes encoding for enzymes) in metagenome with a dedicated functional phenotype (e.g. DNA cytosine modification).
+The main MetaGPA pipeline identifies protein family domains (Pfam, from Pfam-A database, http://pfam.xfam.org/) which are significantly associated with the studied phenotype.
+We also provide additional scripts for further analyses of any chosen interested Pfam identified from the main pipeline.
+For more details, please refer to our paper: [A Genome-Phenome Association study in native microbiomes identifies a mechanism for cytosine modification in DNA and RNA.](https://elifesciences.org/articles/70021)
+
 
 ## Features
 - List of main features and capabilities.
