@@ -99,6 +99,8 @@ sub write_commands {
     push @commands, "perl ".$config->{programs}{add_enrich}.
         " --fasta ".$assembly_final.
         " --enrichment ".$coverage_bed.
+        " --control_bam ".$control_bam.
+        " --enriched_bam ".$selection_bam.
         " --out ".$enrichment_info;
     push @commands, "perl ".$config->{programs}{get_enrich}.
         " --pfam ".$hmmer2.

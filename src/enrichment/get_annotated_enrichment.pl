@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Cwd;
 use Getopt::Long qw(GetOptions);
+use Statistics::Descriptive;
 use File::Temp qw(tempfile);
 use Data::Dumper;
 use Math::CDF qw(:all);
@@ -19,6 +20,8 @@ sub main {
     open(my $out_fh, ">", $out) or die "Can't open $out\n";
     write_enrichment_output($result4, $pfam2desc, $TOTAL, $out_fh);
     close $out_fh;
+
+    print(get_cutoff_from_distribution($enrichment_file_path, 1)."\n");
 
     return 0;
 }
@@ -136,6 +139,48 @@ sub parse_args {
 
     die $error_sentence unless $out && $pfam;
     return ($pfam, $enrichment_file_path, $out, $cutoff, $direction, $read_count_min, $contig_min, $unwanted, $pfam_cutoff, $TOTAL);
+}
+
+sub get_cutoff_from_distribution {
+    my ($filename, $tails) = @_;
+    my @ratios;
+
+    open(my $fh, "<", $filename) or die "Can't open $filename: $!";
+    while (my $line = <$fh>) {
+        chomp $line;
+        next if $line =~ /^\s*$/; # skip empty lines
+        my @fields = split /\t/, $line;
+        push @ratios, $fields[-1];
+    }
+    close $fh;
+
+    return -1 if @ratios < 5;
+
+    my $stat = Statistics::Descriptive::Full->new();
+    $stat->add_data(@ratios);
+    my $skew = $stat->skewness();
+    my $mean = $stat->mean();
+    my $stddev = $stat->standard_deviation();
+
+    my ($cutoff, $lower_cutoff, $upper_cutoff);
+
+    if ($tails == 2) {
+        my $N = (abs($skew) < 0.5) ? 2 : 3;
+        $lower_cutoff = $mean - $N * $stddev;
+        $upper_cutoff = $mean + $N * $stddev;
+        return ($lower_cutoff, $upper_cutoff);
+    } else {
+        print(abs($skew)."\n");
+        print(" $mean $stddev\n");
+        if (abs($skew) < 0.5) {
+            $cutoff = $mean + 2 * $stddev;
+        } elsif ($skew > 0) {
+            $cutoff = $mean + 3 * $stddev;
+        } else {
+            $cutoff = $mean - 3 * $stddev;
+        }
+        return $cutoff;
+    }
 }
 
 sub parse_enrichment_info {
