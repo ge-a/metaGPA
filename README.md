@@ -125,7 +125,8 @@ Overview of the main scripts and their roles.
 How to configure the pipeline for your data.
 
 ## Dependencies
-List of required software and libraries.
+Please see environment.yml file for a list of required dependencies and versions. These dependencies can be installed directly with command: 
+`conda env create -f environment.yml`
 
 ## Troubleshooting
 Common issues and solutions.
