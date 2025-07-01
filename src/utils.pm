@@ -176,3 +176,25 @@ sub write_file {
     print $fh $content;
     close $fh;
 }
+
+sub downsample_fq {
+    my ($fq1, $fq2, $downsample_val) = @_;
+
+    my ($fq1_dir, $fq1_base) = ($fq1 =~ m|^(.*?)/?([^/]+)$|);
+    my ($fq2_dir, $fq2_base) = ($fq2 =~ m|^(.*?)/?([^/]+)$|);
+
+    $fq1_dir ||= ".";  # default to current directory if no path
+    $fq2_dir ||= ".";
+
+    # Remove file extension for output base name
+    (my $fq1_stub = $fq1_base) =~ s/\.(fastq|fq|fasta|fa)(\.gz)?$//i;
+    (my $fq2_stub = $fq2_base) =~ s/\.(fastq|fq|fasta|fa)(\.gz)?$//i;
+
+    my $out1 = "$fq1_dir/${fq1_stub}_downsampled.fq";
+    my $out2 = "$fq2_dir/${fq2_stub}_downsampled.fq";
+
+    system("seqtk sample $fq1 $downsample_val > $out1") == 0 or die "Failed to downsample $fq1";
+    system("seqtk sample $fq2 $downsample_val > $out2") == 0 or die "Failed to downsample $fq2";
+
+    return ($out1, $out2);
+}
