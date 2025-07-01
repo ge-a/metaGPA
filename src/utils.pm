@@ -27,7 +27,7 @@ sub make_dir {
 
 ### FOR PIPELINE WORKFLOW 
 sub make_unique_path {
-    my ($path, $assemble, $annotate, $map, $enrich) = @_;
+    my ($path, $lite, $assemble, $annotate, $map, $enrich) = @_;
 
     my $output_dir = "../output";
     make_dir($output_dir);
@@ -36,6 +36,10 @@ sub make_unique_path {
     $basename =~ s/.*\///g; 
     my $full_path = "$output_dir/$basename";
 
+    if ($lite ne "none") {
+        return $full_path;
+    }
+    
     my $counter = 1;
     my $unique_path = $full_path;
     while (-e $unique_path) {

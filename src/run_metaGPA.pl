@@ -125,22 +125,26 @@ sub main {
 sub parse_arguments {
     my %config = (
         commands => {
-            do_trim => "trim_galore",
+            do_trim => "none",
             do_assembly => "",
             do_annotation => "",
             do_mapping => "",
-            do_enrichment => ""
+            do_enrichment => "",
         },
+        lite => "none",
         mapping_func => "bwa", # add command line option to specify mapping function
         cutoff => 3,
     );
+    my $set_trim = sub { $config{commands}{do_trim} = "trim_galore" };
+
     # add option to map to run from a specific directory --> will create a new directory if one already exists
     GetOptions(
-        "trim|t=s" => \$config{commands}{do_trim},
+        "trim|t" => $set_trim,
         "assembly|A" => \$config{commands}{do_assembly},
         "annotation|AN" => \$config{commands}{do_annotation},
         "mapping|M" => \$config{commands}{do_mapping},
         "enrichment|E" => \$config{commands}{do_enrichment},
+        "lite|l" => \$config{lite},
         "control_1|c1=s@" => \$config{input}{control_1},
         "selection_1|s1=s@" => \$config{input}{selection_1},
         "control_2|c2=s@" => \$config{input}{control_2},
@@ -150,11 +154,12 @@ sub parse_arguments {
         "help|h" => \$config{help}
     ) or usage();
 
-    $config{dirs}{output} = make_unique_path($config{dirs}{output}, $config{commands}{do_assembly}, 
+    $config{dirs}{output} = make_unique_path($config{dirs}{output}, $config{lite},
+                                                $config{commands}{do_assembly}, 
                                                 $config{commands}{do_annotation}, 
                                                 $config{commands}{do_mapping}, 
                                                 $config{commands}{do_enrichment});
-    system("mkdir -p $config{dirs}{output}") unless -d $config{dirs}{output};
+    make_dir($config{dirs}{output});
     usage() if $config{help};
     usage() if (!defined($config{input}{control_1}) || 
                 !defined($config{input}{selection_1}));
