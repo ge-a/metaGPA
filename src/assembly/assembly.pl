@@ -144,7 +144,6 @@ sub write_commands {
     my $selection_prefix = $config->{dirs}{assembly}."/".$generic_selection;
 
     my $assembly_final_info = $generic_prefix."control_and_selected.fasta";
-    my $translated_assembly_final = $config->{dirs}{assembly}."/".$generic."control_and_selected.faa";
     
     push @commands, $config->{programs}{assembly}." -1 ".$config->{input}{control_reads_1}.
         " -2 ".$config->{input}{control_reads_2}.
@@ -169,14 +168,14 @@ sub write_commands {
         " --out ".$selection_prefix.".fasta".
         " --min_length ".$config->{params}{min_length};
     push @commands, "cat ".$selection_prefix.".fasta ".$control_prefix.".fasta > ".
-        $generic_prefix."control_and_selected.fasta";
-    push @commands, "cd-hit-est -i ".$generic_prefix."control_and_selected.fasta".
-        " -o ".$generic_prefix."control_and_selected.nd.fasta".
+        $assembly_final_info;
+    push @commands, "cd-hit-est -i ".$assembly_final_info.
+        " -o ".$generic_prefix."control_and_selected.nd.fasta". # what is this nd
         " -c 0.95 -n 10 -M 0 -T ".$config->{params}{threads}.
         " -d 0 -r 1 -G 1 -g 1";
-    push @commands, "samtools faidx ".$generic_prefix."control_and_selected.fasta";
-    push @commands, "bwa index ".$generic_prefix."control_and_selected.fasta";
-    push @commands, "metaquast.py " . $generic_prefix."control_and_selected.fasta".
+    push @commands, "samtools faidx ".$assembly_final_info;
+    push @commands, "bwa index ".$assembly_final_info;
+    push @commands, "metaquast.py " . $assembly_final_info.
         " -o ".$config->{dirs}{assembly}."/quast";
 
     return @commands
