@@ -3,6 +3,7 @@ use strict;
 use Getopt::Long qw(GetOptions);
 use File::Temp qw(tempfile);
 use Bio::SeqIO;
+use utils qw(get_DNA); 
 
 #this programs cleans the assemblies
 

@@ -17,7 +17,8 @@ our @EXPORT_OK = qw(make_dir
                 append_assemblies
                 parse_pfam_file
                 calculate_enrichment_stats
-                parse_bed);
+                parse_bed
+                get_DNA);
 
 sub main {
     # die "Usage: $0 dir1 dir2 ... output_dir\n" unless @ARGV >= 2;
@@ -32,6 +33,23 @@ sub main {
 sub make_dir {
     my ($dir) = @_;
     system("mkdir -p $dir") unless -d $dir;
+}
+
+sub get_DNA {
+    my ($contig, $DNA)=@_;
+    my %id2seq;
+    my $seq_in = Bio::SeqIO->new(-file   => $DNA,
+				 -format => "fasta", );
+    while ( my $faa = $seq_in->next_seq() ) {
+	    my $tmp = $faa->id;
+	    $tmp =~ /(.*)\_ratio\_.*/;
+	    my $id = $1;
+	    if ($$contig{$id}) {
+	        my $seq = $faa->seq;
+	        $id2seq{$id}=$seq;
+	    }
+    }
+    return (\%id2seq)
 }
 
 ### FOR PIPELINE WORKFLOW 
