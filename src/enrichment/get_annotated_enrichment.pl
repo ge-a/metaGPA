@@ -6,6 +6,9 @@ use Statistics::Descriptive;
 use File::Temp qw(tempfile);
 use Data::Dumper;
 use Math::CDF qw(:all);
+use utils qw(parse_pfam_file 
+            calculate_enrichment_stats
+            parse_bed);
 
 exit main();
 
@@ -26,76 +29,6 @@ sub main {
     close $out_fh;
 
     return 0;
-}
-
-sub parse_pfam_file {
-    my ($pfam, $enrichment_file_path, $hash_contig, $read_count_min, $contig_min, $pfam_cutoff, $cutoff, $direction) = @_;
-    my (%result2, %result3, %pfam2desc);
-    my $enrichment_info = parse_enrichment_info($enrichment_file_path);
-    open(my $pfam_fh, "<", $pfam) or die "Can't open $pfam\n";
-    while (my $line = <$pfam_fh>) {
-        chomp $line;
-        my @tmp = split /\s+/, $line;   
-        if ($tmp[0] !~ /^NODE_\d+_length_\d+_(?:selection|control)-\w+$/) {
-            next;
-        }
-        my $contig = $tmp[0];
-        my $pfam_Evalue = $tmp[6]; 
-        my $contig_name_to_check = $contig;
-        $contig =~ s/((?:selection|control)).*$/$1/;
-        my $control_reads = $enrichment_info->{$contig}[0];
-        my $enriched_reads = $enrichment_info->{$contig}[1];
-        my $read_count = $control_reads + $enriched_reads;
-        my $ratio = $enrichment_info->{$contig}[2]; # Confirm if this is what is being referenced for creating an enrichment score distribution
-        $contig =~ /length_(\S+)_/;
-        my $contig_length = $1;
-        my $status ="rejected";
-        if ($hash_contig && $$hash_contig{$contig_name_to_check}) {
-            print STDERR "$contig_name_to_check is removed\n";
-        }
-        elsif ($read_count > $read_count_min && $contig_length > $contig_min && $pfam_Evalue < $pfam_cutoff) {
-            if ($direction eq "depleted") {
-                $status = ($ratio < $cutoff) ? "enriched" : "depleted";
-            } else {
-                $status = ($ratio >= $cutoff) ? "enriched" : "depleted";
-            }
-            my $pfam = $tmp[4];  
-	        my $hit = $tmp[6];
-            my $description = $tmp[3];
-            $result2{$pfam}{$status}{$contig}++;
-            $result3{$status}{$contig}++;
-            $pfam2desc{$pfam}=$description; 
-            #print STDERR " $contig $ratio $status $pfam $hit\n";
-	        #my $description = my $str = join('_', @tmp[22 .. $#tmp]);
-        }
-    }
-    close $pfam_fh;
-    return (\%result2, \%result3, \%pfam2desc);
-}
-
-sub calculate_enrichment_stats {
-    my ($result2, $result3) = @_;
-    my %result4;
-
-    my $Ns = $result3->{"depleted"};
-    my $ns = $result3->{"enriched"};
-    my $n = keys %$ns;
-    my $N = keys %$Ns;
-
-    foreach my $pfam (keys %$result2) {
-        my $xs = $result2->{$pfam}{"enriched"};
-        my $ys = $result2->{$pfam}{"depleted"};
-        my $x = keys %$xs; $x++; # pseudocount
-        my $y = keys %$ys; $y++; # pseudocount
-        #print STDERR " $xs $ys $x $y\n";
-        my $total = $x + $y;
-        my $proba = $n / ($n + $N);
-        my $test = 1 - (pbinom($x, $total, $proba));
-        #print "$pfam proba : $proba test = $test $n and $N $x $y\n";
-        my $stats = $x."_".$total."_".$proba;
-        $result4{$test}{$pfam} = $stats;
-    }
-    return \%result4;
 }
 
 sub write_enrichment_output {
@@ -183,49 +116,4 @@ sub get_cutoff_from_distribution {
         }
         return $cutoff;
     }
-}
-
-sub parse_enrichment_info {
-    my ($filename) = @_;
-    my %enrichment_hash;
-
-    open(my $fh, "<", $filename) or die "Can't open $filename: $!";
-    while (my $line = <$fh>) {
-        chomp $line;
-        next if $line =~ /^\s*$/; # skip empty lines
-        my ($id, @values) = split /\t/, $line;
-        $enrichment_hash{$id} = \@values;
-    }
-    close $fh;
-    return \%enrichment_hash;
-}
-
-sub parse_bed {
-    my ($bed) = @_;
-    my %hash;
-    open(my $bed_fh, "<", $bed) or die "can't open $bed\n";
-    while (my $line = <$bed_fh>) {
-        chomp $line;
-        my @tmp = split /\t/, $line;
-        my $id = $tmp[0];
-        $hash{$id}++;
-    }
-    close $bed_fh;
-    return \%hash;
-}
-
-sub log10 {
-    my $n = shift;
-    # using pre-defined log function
-    return log($n) / log(10);
-}
-
-sub hypergeometric {
-    my ($M,$p,$F,$n) = @_;
-    return unless $n>0 && $n == int($n) && $p > 0 && $p == int($p) &&
-	$M > 0 && $M <= $n+$p;
-    return 0 unless $p <= $M && $p == int($p);
-
-    return pari2num((binomial($M,$p) * binomial($F-$M, $n-$p)
-		     / binomial($F,$n)));
 }
