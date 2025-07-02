@@ -59,13 +59,14 @@ sub parse_arguments {
         }
     );
     GetOptions(
-        "control-reads-1=s" => \$config{input}{control_reads_1},
-        "control-reads-2=s" => \$config{input}{control_reads_2},
+        "control-reads-1=s"   => \$config{input}{control_reads_1},
+        "control-reads-2=s"   => \$config{input}{control_reads_2},
         "selection-reads-1=s" => \$config{input}{selection_reads_1},
         "selection-reads-2=s" => \$config{input}{selection_reads_2},
-        "output-dir=s" => \$config{dirs}{output},
-        "mapping-func=s" => \$config{programs}{mapping_func},
-        "help|h" => \$config{help},
+        "prefix=s"            => \$config{prefix},
+        "output-dir=s"        => \$config{dirs}{output},
+        "mapping-func=s"      => \$config{programs}{mapping_func},
+        "help|h"              => \$config{help},
     ) or usage();
 
     if ($config{input}{control_reads_1}) {
@@ -121,14 +122,14 @@ sub write_commands {
     $generic_selection =~ s/.1_val_1.fq.gz//;
     $generic_selection =~ s/.*\///g;
 
-    my $generic = $generic_control; $generic =~ s/control/experiment/;
+    my $generic = $config->{prefix};
 
     my $assembly_final = $config->{dirs}{output}."/assembly/".$generic."control_and_selected.fasta";
-    my $control_bam = $config->{dirs}{mapping}."/".$generic_control."mapped_to_".$generic.".bam",
-    my $selection_bam = $config->{dirs}{mapping}."/".$generic_selection."mapped_to_".$generic.".bam",
-    my $control_dedup = $config->{dirs}{mapping}."/".$generic_control."mapped_to_".$generic."duplicated_remove.bam",
-    my $selection_dedup = $config->{dirs}{mapping}."/".$generic_selection."mapped_to_".$generic."duplicated_remove.bam",
-    my $control_stats = $config->{dirs}{mapping}."/".$generic_control."mapped_to_".$generic."duplicated_remove.txt",
+    my $control_bam = $config->{dirs}{mapping}."/".$generic_control."mapped_to_".$generic.".bam";
+    my $selection_bam = $config->{dirs}{mapping}."/".$generic_selection."mapped_to_".$generic.".bam";
+    my $control_dedup = $config->{dirs}{mapping}."/".$generic_control."mapped_to_".$generic."duplicated_remove.bam";
+    my $selection_dedup = $config->{dirs}{mapping}."/".$generic_selection."mapped_to_".$generic."duplicated_remove.bam";
+    my $control_stats = $config->{dirs}{mapping}."/".$generic_control."mapped_to_".$generic."duplicated_remove.txt";
     my $selection_stats = $config->{dirs}{mapping}."/".$generic_selection."mapped_to_".$generic."duplicated_remove.txt";
 
     push @commands, "perl ".$config->{programs}{mapping}.

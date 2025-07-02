@@ -69,6 +69,7 @@ sub main {
             " --control-reads-2 ".$control2.
             " --selection-reads-1 ".$selection_1.
             " --selection-reads-2 ".$selection_2.
+            " --prefix ".$prefix.
             " --mapping-func ".$config->{mapping_func}.
             " --output-dir ".$config->{dirs}{output};
         my $annotation_cmd = "perl annotation/annotation.pl".

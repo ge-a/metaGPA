@@ -37,6 +37,7 @@ sub main {
         my $selection_2;
         my $prefix = $control_1;
         $prefix =~ s/.1_val_1.fq.gz//; $prefix =~ s/.*\///g;
+        $prefix = $prefix."_".$i;
         
         # pass control1/2 and selection1/2 to process_fastq if 2 is empty str then we generate the file ourselves
         if (defined $fastq_control2[$i] && $fastq_control2[$i] ne "") {
