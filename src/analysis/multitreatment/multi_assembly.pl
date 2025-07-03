@@ -46,7 +46,7 @@ sub parse_arguments {
         "control-reads-2=s" => \$config{input}{control_reads_2},
         "selection-reads-1=s" => \$config{input}{selection_reads_1},
         "selection-reads-2=s" => \$config{input}{selection_reads_2},
-        "selection-num" => \$config{selection_num},
+        "selection-num=i" => \$config{selection_num},
         "output-dir=s" => \$config{dirs}{output},
         "threads=i" => \$config{params}{threads},
         "memory=i" => \$config{params}{memory},
@@ -124,13 +124,14 @@ sub write_commands {
     $generic_selection =~ s/.*\///g;
 
     my $generic = $generic_control; $generic =~ s/control/experiment/;
-    my $generic_prefix = $config->{dirs}{assembly}."/".$generic."_".$config{selection_num};
+    my $generic_prefix = $config->{dirs}{assembly}."/".$generic."_".$config->{selection_num};
 
     my $control_prefix =  $config->{dirs}{assembly}."/".$generic_control;
-    my $selection_prefix = $config->{dirs}{assembly}."/".$generic_selection."_".$config{selection_num};
+    my $selection_prefix = $config->{dirs}{assembly}."/".$generic_selection."_".$config->{selection_num};
 
     my $assembly_final_info = $generic_prefix."control_and_selected.fasta";
 
+    my $path = $control_prefix."_"."assembly";
     my $not_ran_control = (-e $path) ? 0 : 1;
 
     if ($not_ran_control == 1) {
@@ -171,7 +172,7 @@ sub assemble_reads {
         " --memory ".$memory.
         " --threads ".$threads;
     push @commands, "perl ".$clean_assembly.
-        " -file ".$control_prefix."_assembly/contigs.fasta".
+        " -file ".$prefix."_assembly/contigs.fasta".
         " -tag control".
         " --out ".$prefix.".fasta".
         " --min_length ".$min_length;

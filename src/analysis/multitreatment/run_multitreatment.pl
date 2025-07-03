@@ -31,9 +31,9 @@ sub main {
  
     for (my $i=0; $i<$size; $i++) {
         my @commands = ();
-        my $control_1 = ;
+        my $control_1 = $fastq_control1[0];
         my $selection_1 = $fastq_selection1[$i];
-        my $control2;
+        my $control_2;
         my $selection_2;
         my $prefix = $control_1;
         $prefix =~ s/.1_val_1.fq.gz//; $prefix =~ s/.*\///g;
@@ -41,9 +41,9 @@ sub main {
         
         # pass control1/2 and selection1/2 to process_fastq if 2 is empty str then we generate the file ourselves
         if (defined $fastq_control2[$i] && $fastq_control2[$i] ne "") {
-            $control_1, $control2 = process_fastq($fastq_control1[$i], $fastq_control2[$i], $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
+            $control_1, $control_2 = process_fastq($fastq_control1[$i], $fastq_control2[$i], $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
         } else {
-            $control_1, $control2 = process_fastq($fastq_control1[$i], "", $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
+            $control_1, $control_2 = process_fastq($fastq_control1[$i], "", $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
         }
         if (defined $fastq_selection2[$i] && $fastq_selection2[$i] ne "") {
             $selection_1, $selection_2 = process_fastq($fastq_selection1[$i], $fastq_selection2[$i], $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
@@ -57,26 +57,26 @@ sub main {
         my $generic_selection = $selection_1;
         $generic_control =~ s/.1_val_1.fq.gz//; $generic_control =~ s/.*\///g;
         $generic_selection =~ s/.1_val_1.fq.gz//; $generic_selection =~ s/.*\///g;
-
         # Create commands
-        my $assembly_cmd = "perl multi_assembly.pl".
+        my $assembly_cmd = "perl analysis/multitreatment/multi_assembly.pl".
             " --control-reads-1 ".$control_1.
-            " --control-reads-2 ".$control2.
+            " --control-reads-2 ".$control_2.
             " --selection-reads-1 ".$selection_1.
             " --selection-reads-2 ".$selection_2.
-            " --selection_num ".$i.
+            " --selection-num ".$i.
             " --output-dir ".$config->{dirs}{output};
-        my $mapping_cmd = "perl ../mapping/mapping.pl".
+        my $mapping_cmd = "perl mapping/mapping.pl".
             " --control-reads-1 ".$control_1.
-            " --control-reads-2 ".$control2.
+            " --control-reads-2 ".$control_2.
             " --selection-reads-1 ".$selection_1.
             " --selection-reads-2 ".$selection_2.
+            " --prefix ".$prefix.
             " --mapping-func ".$config->{mapping_func}.
             " --output-dir ".$config->{dirs}{output};
-        my $annotation_cmd = "perl ../annotation/annotation.pl".
+        my $annotation_cmd = "perl annotation/annotation.pl".
             " --prefix ".$prefix.
             " --output-dir ".$config->{dirs}{output};
-        my $enrichment_cmd = "perl ../enrichment/enrichment.pl".
+        my $enrichment_cmd = "perl enrichment/enrichment.pl".
             " --generic-control ".$generic_control.
             " --generic-selection ".$generic_selection.
             " --prefix ".$prefix.
