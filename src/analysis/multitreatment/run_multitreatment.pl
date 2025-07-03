@@ -28,7 +28,6 @@ sub main {
     my @fastq_control2 = (defined $config->{input}{control_2}) ? @{$config->{input}{control_2}} : ();
     my @fastq_selection2 = (defined $config->{input}{selection_2}) ? @{$config->{input}{selection_2}} : ();
     my $size = @fastq_selection1;
- 
     for (my $i=0; $i<$size; $i++) {
         my @commands = ();
         my $control_1 = $fastq_control1[0];
@@ -40,10 +39,10 @@ sub main {
         $prefix = $prefix."_".$i;
         
         # pass control1/2 and selection1/2 to process_fastq if 2 is empty str then we generate the file ourselves
-        if (defined $fastq_control2[$i] && $fastq_control2[$i] ne "") {
-            $control_1, $control_2 = process_fastq($fastq_control1[$i], $fastq_control2[$i], $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
+        if (defined $fastq_control2[0] && $fastq_control2[0] ne "") {
+            $control_1, $control_2 = process_fastq($fastq_control1[0], $fastq_control2[0], $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
         } else {
-            $control_1, $control_2 = process_fastq($fastq_control1[$i], "", $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
+            $control_1, $control_2 = process_fastq($fastq_control1[0], "", $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
         }
         if (defined $fastq_selection2[$i] && $fastq_selection2[$i] ne "") {
             $selection_1, $selection_2 = process_fastq($fastq_selection1[$i], $fastq_selection2[$i], $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
