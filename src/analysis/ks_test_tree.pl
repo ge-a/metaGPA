@@ -5,6 +5,9 @@ use File::Temp qw(tempfile);
 use Bio::SeqIO;
 use Bio::TreeIO;
 use Statistics::TTest;
+use utils qw(get_control_enriched_reads
+            parse_enrichment_info);
+
 
 my $error_sentence = "USAGE : perl $0 --fasta fastafile.faa --pfam_hit pfamhit.tab --pfam PF000234\n";
 
@@ -22,12 +25,13 @@ sub parse_arguments {
         cutoff => 3,
     );
     GetOptions(
-        "fasta=s"    => \$config{fasta}, 
-        "pfam_hit=s" => \$config{pfam_hit},
-        "pfam=s"     => \$config{pfam},
-        "out=s"      => \$config{out},
-        "cutoff=f"    => \$config{cutoff},
-        "help|h"     => \$config{help},
+        "fasta=s"       => \$config{fasta}, 
+        "enrich_txt=s"  => \$config{enrich},
+        "pfam_hit=s"    => \$config{pfam_hit},
+        "pfam=s"        => \$config{pfam},
+        "out=s"         => \$config{out},
+        "cutoff=f"      => \$config{cutoff},
+        "help|h"        => \$config{help},
     ) or usage();
 
     usage() if $config{help} || !$config{fasta} || !$config{pfam_hit} || !$config{pfam};
@@ -40,6 +44,7 @@ Usage: $0 [options]
 
 Required:
     --fasta FILE        Combined assembly FASTA file (control and enriched) with enrichment scores
+    --enrich_txt FILE   Enrichment_info.txt file
     --pfam_hit FILE     PFAM hit tab file with position of pfam
     --pfam STRING       PFAM family ID (e.g., PF000234) desired
 
@@ -82,6 +87,7 @@ sub run_ks_test_tree {
     print $out4_fh "name\tleaf_dot_color\tleaf_label_color\tbar1_height\tbar1_gradient\n";
 
     my @array_enrichment;
+    my $enrichment_info = parse_enrichment_info($config->{enrich});
     while (my $line = <$hit_fh>) {
         #Ribonuc_red_lgC PF02867.18 527 NODE_1_length_63839_selection_ENRICHMENT_control_10_selected_18765_ratio_1706-0F - 21279  3.9e-100  336.0   0.0   1   2   1.2e-67   1.9e-64  218.2   0.0     2   343  8420  8733  8419  8737 0.93 Ribonucleotide reductase, barrel domain
         chomp $line;
@@ -95,10 +101,9 @@ sub run_ks_test_tree {
             my $v = $1;
             my $enrichment = sprintf("%.1f", $v);
             $enrichment = 0.1 if $enrichment == 0;
-            $contig =~ /(\S+)_ENRICHMENT_control_(\S+)_selected_(\S+)_ratio_(\S+)/;
-            my $contig_name_to_check = $1;
-            my $control_reads = $2;
-            my $enriched_reads = $3;
+            $contig =~ s/((?:selection|control)).*$/$1/;
+            my $contig_name_to_check = $contig;
+            my ($control_reads, $enriched_reads) = get_control_enriched_reads($contig, $enrichment_info);
             my $read_count = $control_reads + $enriched_reads;
             $contig =~ /length_(\S+)_/;
             my $contig_length = $1;
