@@ -17,6 +17,8 @@ our @EXPORT_OK = qw(make_dir
                 append_assemblies
                 parse_pfam_file
                 calculate_enrichment_stats
+                get_control_enriched_reads
+                parse_enrichment_info
                 parse_bed
                 get_DNA);
 
@@ -228,6 +230,13 @@ sub downsample_fq {
 
 ### FOR ENRICHMENT
 
+sub get_control_enriched_reads {
+    my ($contig, $enrichment_info) = @_;
+    my $control_reads   = $enrichment_info->{$contig}[0];
+    my $enriched_reads  = $enrichment_info->{$contig}[1];
+    return ($control_reads, $enriched_reads);
+}
+
 sub parse_pfam_file {
     my ($pfam, $enrichment_file_path, $hash_contig, $read_count_min, $contig_min, $pfam_cutoff, $cutoff, $direction) = @_;
     my (%result2, %result3, %pfam2desc);
@@ -243,10 +252,12 @@ sub parse_pfam_file {
         my $pfam_Evalue = $tmp[6]; 
         my $contig_name_to_check = $contig;
         $contig =~ s/((?:selection|control)).*$/$1/;
-        my $control_reads = $enrichment_info->{$contig}[0];
-        my $enriched_reads = $enrichment_info->{$contig}[1];
+
+        # Use the new helper function
+        my ($control_reads, $enriched_reads) = get_control_enriched_reads($contig, $enrichment_info);
+
         my $read_count = $control_reads + $enriched_reads;
-        my $ratio = $enrichment_info->{$contig}[2]; # Confirm if this is what is being referenced for creating an enrichment score distribution
+        my $ratio = $enrichment_info->{$contig}[2];
         $contig =~ /length_(\S+)_/;
         my $contig_length = $1;
         my $status ="rejected";
@@ -260,7 +271,7 @@ sub parse_pfam_file {
                 $status = ($ratio >= $cutoff) ? "enriched" : "depleted";
             }
             my $pfam = $tmp[4];  
-	        my $hit = $tmp[6];
+            my $hit = $tmp[6];
             my $description = $tmp[3];
             $result2{$pfam}{$status}{$contig}++;
             $result3{$status}{$contig}++;
