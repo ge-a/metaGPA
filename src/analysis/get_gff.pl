@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Getopt::Long qw(GetOptions);
 use Bio::SeqIO;
-use utils qw(get_DNA);
+use utils qw(parse_enrichment_info);
 
 exit main();
 
@@ -19,20 +19,21 @@ sub main {
 
 sub parse_arguments {
     my %config;
-    my $error_sentence = "USAGE : perl $0 --pfam_hit pfamhit.tab --pfam PF000234 --fasta assembly.fasta --cutoff 3 --direction enriched\n";
+    my $error_sentence = "USAGE : perl $0 --pfam_hit pfamhit.tab --pfam PF000234 --fasta assembly.fasta --enrichment_txt enrichment.txt --cutoff 3 --direction enriched\n";
     GetOptions(
-        "fasta=s"     => \$config{fasta},
-        "pfam_hit=s"  => \$config{pfam_hit},
-        "pfam=s"      => \$config{pfam},
-        "cutoff=f"    => \$config{cutoff},
-        "direction=s" => \$config{direction},
-        "help|h"      => \$config{help},
+        "fasta=s"         => \$config{fasta},
+        "pfam_hit=s"      => \$config{pfam_hit},
+        "pfam=s"          => \$config{pfam},
+        "enrichment_txt=s"=> \$config{enrichment_txt},
+        "cutoff=f"        => \$config{cutoff},
+        "direction=s"     => \$config{direction},
+        "help|h"          => \$config{help},
     ) or usage($error_sentence);
 
     $config{cutoff}    //= 3;
     $config{direction} //= "enriched";
 
-    usage($error_sentence) if $config{help} || !$config{fasta} || !$config{pfam_hit} || !$config{pfam};
+    usage($error_sentence) if $config{help} || !$config{fasta} || !$config{pfam_hit} || !$config{pfam} || !$config{enrichment_txt};
     return \%config;
 }
 
@@ -42,22 +43,22 @@ sub usage {
 $msg
 
 Required:
-    --fasta FILE        Assembly FASTA file (DNA)
-    --pfam_hit FILE     PFAM hit tab file
-    --pfam STRING       PFAM family desired
+    --fasta FILE            Assembly FASTA file (DNA)
+    --pfam_hit FILE         PFAM hit tab file
+    --pfam STRING           PFAM family desired
+    --enrichment_txt FILE   Enrichment info file
 
 Optional:
-    --cutoff FLOAT      Enrichment cutoff (default: 3)
-    --direction STRING  Enrichment direction: enriched or depleted (default: enriched)
-    --help, -h          Show this help message
+    --cutoff FLOAT          Enrichment cutoff (default: 3)
+    --direction STRING      Enrichment direction: enriched or depleted (default: enriched)
+    --help, -h              Show this help message
 
 Example:
-    $0 --pfam_hit pfamhit.tab --pfam PF000234 --fasta assembly.fasta --cutoff 3 --direction enriched
+    $0 --pfam_hit pfamhit.tab --pfam PF000234 --fasta assembly.fasta --enrichment_txt enrichment.txt --cutoff 3 --direction enriched
 
 EOF
     exit(1);
 }
-
 sub parse_fasta_sequences {
     my ($fasta) = @_;
     my %id2seq;
@@ -68,9 +69,12 @@ sub parse_fasta_sequences {
     return %id2seq;
 }
 
+# needs a helper function to pull info from an enrichment txt file
+
 sub select_contigs_by_pfam {
     my ($config, $id2seq) = @_;
     my %contigs;
+    my $enrichment_info = parse_enrichment_info($config->{enrichment_txt});
     open(my $hit_fh, "<", $config->{pfam_hit}) or die "can't open $config->{pfam_hit}\n";
     while (my $line = <$hit_fh>) {
         chomp $line;
@@ -80,7 +84,7 @@ sub select_contigs_by_pfam {
         next unless $domain eq $config->{pfam};
         my $contig = $tmp[0];
         $contig =~ /.*_ratio_(.*)\-.*/;
-        my $ratio = $1;
+        my $ratio = $enrichment_info->{$contig}[2];
         my $selected = 0;
         $selected = 1 if ($config->{direction} eq "enriched" && $ratio > $config->{cutoff});
         $selected = 1 if ($config->{direction} eq "depleted" && $ratio < $config->{cutoff});
@@ -102,6 +106,7 @@ sub select_contigs_by_pfam {
 
 sub extract_gff_features {
     my ($config, $contigs) = @_;
+	my $enrichment_info = parse_enrichment_info($config->{enrichment_txt});
     my %result;
     my %function;
     my $i = 0;
@@ -116,11 +121,11 @@ sub extract_gff_features {
 			$i++;
 			$contig =~ /(NODE_\d+)_.*/;
 			my $contig_name = $1;
-			$contig =~ /ratio_(.*)\-(.)(.)/;
-			my $enrichment = $1;
-			my $frame = $2;
+			$contig =~ /-(\d)([FR])$/;
+			my $enrichment = $enrichment_info->{$contig}[2]
+			my $frame = $1;
 			my $orientation = "+";
-			my $sens = $3;
+			my $sens = $2;
 			my $name = $tmp[3];
 			my $start = $tmp[17] * 3;
 			my $end = $tmp[18] * 3;
