@@ -15,9 +15,29 @@ sub main {
     my $config = parse_arguments();
     my @commands = write_commands($config);
 
-    for my $cmd (@commands) {
-        print "Running command: $cmd\n";
-        system($cmd) == 0 or die "Failed to execute command: $cmd";
+    my $num_parallel = get_num_selection_reads($config->{input}{selection_reads_1});
+    my @pids;
+
+    # Run the first $num_parallel commands in parallel
+    for my $i (0 .. int($num_parallel / 2)) {
+        my $pid = fork();
+        if (!defined $pid) {
+            die "Failed to fork: $!";
+        } elsif ($pid == 0) {
+            print "Running command: $commands[$i]\n";
+            system($commands[$i]) == 0 or die "Failed to execute command: $commands[$i]";
+            exit(0);
+        } else {
+            push @pids, $pid;
+        }
+    }
+    for my $pid (@pids) {
+        waitpid($pid, 0);
+    }
+    # Run the remaining commands sequentially
+    for my $i ($num_parallel .. $#commands) {
+        print "Running command: $commands[$i]\n";
+        system($commands[$i]) == 0 or die "Failed to execute command: $commands[$i]";
     }
 }
 
@@ -46,7 +66,6 @@ sub parse_arguments {
         "control-reads-2=s" => \$config{input}{control_reads_2},
         "selection-reads-1=s" => \$config{input}{selection_reads_1},
         "selection-reads-2=s" => \$config{input}{selection_reads_2},
-        "selection-num=i" => \$config{selection_num},
         "output-dir=s" => \$config{dirs}{output},
         "threads=i" => \$config{params}{threads},
         "memory=i" => \$config{params}{memory},
@@ -89,12 +108,11 @@ Usage: $0 [options]
 Required:
     --control-reads-1 FILE    Forward reads for control sample
     --selection-reads-1 FILE  Forward reads for selection sample
-    --selection-num INT       The Nth selection being ran
+    --control-reads-2 FILE    Reverse reads for control sample
+    --selection-reads-2 FILE  Reverse reads for selection sample
     --output-dir DIR          Output directory path
 
 Optional:
-    --control-reads-2 FILE    Reverse reads for control sample (default: constructed from forward reads)
-    --selection-reads-2 FILE  Reverse reads for selection sample (default: constructed from forward reads)
     --assembler PROGRAM       Assembler program (default: metaspades.py)
     --threads INT            Number of threads (default: 24)
     --memory INT            Memory in GB (default: 900)
@@ -130,22 +148,17 @@ sub write_commands {
     my $selection_prefix = $config->{dirs}{assembly}."/".$generic_selection."_".$config->{selection_num};
 
     my $assembly_final_info = $generic_prefix."control_and_selected.fasta";
-
-    my $path = $control_prefix."_"."assembly";
-    my $not_ran_control = (-e $path) ? 0 : 1;
-
-    if ($not_ran_control == 1) {
-        my @control_commands = assemble_reads($config->{programs}{assembly}, 
-                                            $config->{input}{control_reads_1}, $config->{input}{control_reads_2},
-                                            $control_prefix, $config->{params}{memory}, $config->{params}{threads},
-                                            $config->{programs}{clean_assembly}, $config->{params}{min_length});
-        push @commands, @control_commands;
-    }
+    my @control_commands = assemble_reads($config->{programs}{assembly}, 
+                                        $config->{input}{control_reads_1}, $config->{input}{control_reads_2},
+                                        $control_prefix, $config->{params}{memory}, $config->{params}{threads},
+                                        $config->{programs}{clean_assembly}, $config->{params}{min_length}, 1);
+    push @commands, @control_commands;
     
+    my $num_selections = get_num_selection_reads($config->{input}{selection_reads_1})
     my @selection_commands =  assemble_reads($config->{programs}{assembly}, 
                                             $config->{input}{selection_reads_1}, $config->{input}{selection_reads_2},
                                             $selection_prefix, $config->{params}{memory}, $config->{params}{threads},
-                                            $config->{programs}{clean_assembly}, $config->{params}{min_length});
+                                            $config->{programs}{clean_assembly}, $config->{params}{min_length}, $num_selections);
     push @commands, @selection_commands;
 
     push @commands, "cat ".$selection_prefix.".fasta ".$control_prefix.".fasta > ".
@@ -163,18 +176,37 @@ sub write_commands {
 }
 
 sub assemble_reads {
-    my ($assembly_program, $read1, $read2, $prefix, $memory, $threads, $clean_assembly, $min_length) = @_;
+    my ($assembly_program, $read1, $read2, $prefix, $memory, $threads, $clean_assembly, $min_length, $num_files) = @_;
     my @commands;
-    push @commands, $assembly_program." -1 ".$read1.
-        " -2 ".$read2.
-        " -o ".$prefix."_assembly".
-        " --only-assembler".
-        " --memory ".$memory.
-        " --threads ".$threads;
-    push @commands, "perl ".$clean_assembly.
-        " -file ".$prefix."_assembly/contigs.fasta".
-        " -tag control".
-        " --out ".$prefix.".fasta".
-        " --min_length ".$min_length;
+
+    if $num_files > 1 {
+        my @read1_files = split /,/, $read1;
+        my @read2_files = split /,/, $read2;
+    }        
+
+    for (my $i = 0; $i < $num_files; $i++) {
+        my $r1 = $read1_files[$i];
+        my $r2 = ($read2_files[$i] // ""); # handle missing read2
+        my $sub_prefix = $prefix . "_$i";
+        push @commands, $assembly_program." -1 ".$r1.
+            " -2 ".$r2.
+            " -o ".$sub_prefix."_assembly".
+            " --only-assembler".
+            " --memory ".$memory.
+            " --threads ".$threads;
+        push @commands, "perl ".$clean_assembly.
+            " -file ".$sub_prefix."_assembly/contigs.fasta".
+            " -tag control".
+            " --out ".$sub_prefix.".fasta".
+            " --min_length ".$min_length;
+    }
     return @commands;
+}
+
+sub get_num_selection_reads {
+    my ($selection_reads_1_str) = @_;
+    my @reads = split /,/, $selection_reads_1_str;
+    my %unique;
+    $unique{$_}++ for @reads;
+    return scalar(keys %unique);
 }
