@@ -154,15 +154,18 @@ sub write_commands {
                                         $config->{programs}{clean_assembly}, $config->{params}{min_length}, 1);
     push @commands, @control_commands;
     
-    my $num_selections = get_num_selection_reads($config->{input}{selection_reads_1})
+    my $num_selections = int(get_num_selection_reads($config->{input}{selection_reads_1}) / 2)
     my @selection_commands =  assemble_reads($config->{programs}{assembly}, 
                                             $config->{input}{selection_reads_1}, $config->{input}{selection_reads_2},
                                             $selection_prefix, $config->{params}{memory}, $config->{params}{threads},
                                             $config->{programs}{clean_assembly}, $config->{params}{min_length}, $num_selections);
     push @commands, @selection_commands;
 
-    push @commands, "cat ".$selection_prefix.".fasta ".$control_prefix.".fasta > ".
-        $assembly_final_info;
+    # Build list of selection fasta files
+    my @selection_fasta_files = map { "${selection_prefix}_$_.fasta" } (0 .. $num_selections-1);
+    my $selection_concat = join(" ", @selection_fasta_files);
+
+    push @commands, "cat $selection_concat $control_prefix.fasta > $assembly_final_info";
     push @commands, "cd-hit-est -i ".$assembly_final_info.
         " -o ".$generic_prefix."control_and_selected.nd.fasta".
         " -c 0.95 -n 10 -M 0 -T ".$config->{params}{threads}.
@@ -187,17 +190,18 @@ sub assemble_reads {
     for (my $i = 0; $i < $num_files; $i++) {
         my $r1 = $read1_files[$i];
         my $r2 = ($read2_files[$i] // ""); # handle missing read2
-        my $sub_prefix = $prefix . "_$i";
+        if $num_files > 1: 
+            my $prefix = $prefix . "_$i";
         push @commands, $assembly_program." -1 ".$r1.
             " -2 ".$r2.
-            " -o ".$sub_prefix."_assembly".
+            " -o ".$prefix."_assembly".
             " --only-assembler".
             " --memory ".$memory.
             " --threads ".$threads;
         push @commands, "perl ".$clean_assembly.
-            " -file ".$sub_prefix."_assembly/contigs.fasta".
+            " -file ".$prefix."_assembly/contigs.fasta".
             " -tag control".
-            " --out ".$sub_prefix.".fasta".
+            " --out ".$prefix.".fasta".
             " --min_length ".$min_length;
     }
     return @commands;
