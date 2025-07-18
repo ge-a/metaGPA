@@ -77,7 +77,7 @@ sub main {
         " --selection-reads-2 ".$selection_2_str.
         " --output-dir ".$config->{dirs}{output};
 
-    my $mapping_cmd = "perl mapping/mapping.pl".
+    my $mapping_cmd = "perl analysis/multitreatment/multi_mapping.pl".
         " --control-reads-1 ".$control_1.
         " --control-reads-2 ".$control_2.
         " --selection-reads-1 ".$selection_1_str.
