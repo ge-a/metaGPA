@@ -14,7 +14,7 @@ sub main {
     my $config = parse_arguments();
     my @commands = write_commands($config);
 
-    my $num_selection = int(get_num_selection_reads($config->{input}{selection_reads_1}) / 2);
+    my $num_selection = $config->{params}{num_selections}
 
     # Run commands 0, 1, 2 together (group 1)
     my @pids1;
@@ -81,6 +81,9 @@ sub main {
 
 sub parse_arguments {
     my %config = (
+        params => {
+            num_selections => 1,
+        },
         dirs => {
             output => "output",
             mapping => "mapping"
@@ -100,7 +103,8 @@ sub parse_arguments {
         "control-reads-2=s"   => \$config{input}{control_reads_2},
         "selection-reads-1=s" => \$config{input}{selection_reads_1},
         "selection-reads-2=s" => \$config{input}{selection_reads_2},
-        "prefix=s"            => \$config{prefix},
+        "prefix=s"            => \$config{params}{prefix},
+        "num-selections"      => \$config{params}{num_selections}
         "output-dir=s"        => \$config{dirs}{output},
         "mapping-func=s"      => \$config{programs}{mapping_func},
         "help|h"              => \$config{help},
@@ -136,6 +140,7 @@ Required:
 Optional:
     --control-reads-2 FILE     Reverse reads for control sample (default: auto-detect)
     --selection-reads-2 FILE   Reverse reads for selection sample (default: auto-detect)
+    --num-selections STR    Number of selection files inputted into assembly
     --mapping-func FUNC        Mapping function to use (default: bwa)
     --help                     Show this help message
 
@@ -159,7 +164,7 @@ sub write_commands {
     $generic_selection =~ s/.1_val_1.fq.gz//;
     $generic_selection =~ s/.*\///g;
 
-    my $generic = $config->{prefix};
+    my $generic = $config->{params}{prefix}
 
     my $assembly_final = $config->{dirs}{output}."/assembly/".$generic."control_and_selected.fasta";
     my $control_bam = $config->{dirs}{mapping}."/".$generic_control."mapped_to_".$generic.".bam";
@@ -170,7 +175,7 @@ sub write_commands {
     my $selection_stats = $config->{dirs}{mapping}."/".$generic_selection."mapped_to_".$generic."duplicated_remove.txt";
 
     my $num_control = 1;
-    my $num_selection = int(get_num_selection_reads($config->{input}{selection_reads_1}) / 2);
+    my $num_selection = $config->{params}{num_selections}
 
     push @commands, mapping_commands(
         $config->{programs}{mapping},
@@ -230,12 +235,4 @@ sub mapping_commands {
             " --out $sub_out";
     }
     return @commands;
-}
-
-sub get_num_selection_reads {
-    my ($selection_reads_1_str) = @_;
-    my @reads = split /,/, $selection_reads_1_str;
-    my %unique;
-    $unique{$_}++ for @reads;
-    return scalar(keys %unique);
 }

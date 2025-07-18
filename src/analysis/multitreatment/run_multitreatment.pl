@@ -69,12 +69,15 @@ sub main {
     $generic_control =~ s/.1_val_1.fq.gz//; $generic_control =~ s/.*\///g;
     $generic_selection =~ s/.1_val_1.fq.gz//; $generic_selection =~ s/.*\///g;
 
+    my $num_selections = int(get_num_selection_reads($config->{input}{selection_reads_1}) / 2)
+
     # Create commands with full lists
     my $assembly_cmd = "perl analysis/multitreatment/multi_assembly.pl".
         " --control-reads-1 ".$control_1.
         " --control-reads-2 ".$control_2.
         " --selection-reads-1 ".$selection_1_str.
         " --selection-reads-2 ".$selection_2_str.
+        " --num_selections".$num_selections.
         " --output-dir ".$config->{dirs}{output};
 
     my $mapping_cmd = "perl analysis/multitreatment/multi_mapping.pl".
@@ -82,6 +85,7 @@ sub main {
         " --control-reads-2 ".$control_2.
         " --selection-reads-1 ".$selection_1_str.
         " --selection-reads-2 ".$selection_2_str.
+        " --num_selections".$num_selections.
         " --prefix ".$prefix.
         " --mapping-func ".$config->{mapping_func}.
         " --output-dir ".$config->{dirs}{output};
@@ -94,6 +98,7 @@ sub main {
         " --generic-control ".$generic_control.
         " --generic-selection ".$generic_selection.
         " --prefix ".$prefix.
+        " --num_selections".$num_selections.
         " --cutoff ".$config->{cutoff}.
         " --output-dir ".$config->{dirs}{output};
 
@@ -200,4 +205,12 @@ Example:
        --assembly --mapping --enrichment
 EOF
     exit(1);
+}
+
+sub get_num_selection_reads {
+    my ($selection_reads_1_str) = @_;
+    my @reads = split /,/, $selection_reads_1_str;
+    my %unique;
+    $unique{$_}++ for @reads;
+    return scalar(keys %unique);
 }

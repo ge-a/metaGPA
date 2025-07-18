@@ -15,7 +15,7 @@ sub main {
     my $config = parse_arguments();
     my @commands = write_commands($config);
 
-    my $num_parallel = get_num_selection_reads($config->{input}{selection_reads_1});
+    my $num_parallel = $config->{params}{num_selections}
     my @pids;
 
     # Run the first $num_parallel commands in parallel
@@ -47,6 +47,7 @@ sub parse_arguments {
             threads => 24,
             memory => 500,
             min_length => 500,
+            num_selections => 1,
         },
         dirs => {
             output => "output",
@@ -67,6 +68,7 @@ sub parse_arguments {
         "selection-reads-1=s" => \$config{input}{selection_reads_1},
         "selection-reads-2=s" => \$config{input}{selection_reads_2},
         "output-dir=s" => \$config{dirs}{output},
+        "num-selections=s" => \$config{params}{num_selections}
         "threads=i" => \$config{params}{threads},
         "memory=i" => \$config{params}{memory},
         "min-length=i" => \$config{params}{min_length},
@@ -113,8 +115,9 @@ Required:
     --output-dir DIR          Output directory path
 
 Optional:
-    --assembler PROGRAM       Assembler program (default: metaspades.py)
-    --threads INT            Number of threads (default: 24)
+    --assembler PROGRAM     Assembler program (default: metaspades.py)
+    --num-selections STR    Number of selection files inputted into assembly
+    --threads INT           Number of threads (default: 24)
     --memory INT            Memory in GB (default: 900)
     --min-length INT        Minimum contig length (default: 500)
     --help                  Show this help message
@@ -154,7 +157,7 @@ sub write_commands {
                                         $config->{programs}{clean_assembly}, $config->{params}{min_length}, 1);
     push @commands, @control_commands;
     
-    my $num_selections = int(get_num_selection_reads($config->{input}{selection_reads_1}) / 2)
+    my $num_selections = $config->{params}{num_selections}
     my @selection_commands =  assemble_reads($config->{programs}{assembly}, 
                                             $config->{input}{selection_reads_1}, $config->{input}{selection_reads_2},
                                             $selection_prefix, $config->{params}{memory}, $config->{params}{threads},
@@ -205,12 +208,4 @@ sub assemble_reads {
             " --min_length ".$min_length;
     }
     return @commands;
-}
-
-sub get_num_selection_reads {
-    my ($selection_reads_1_str) = @_;
-    my @reads = split /,/, $selection_reads_1_str;
-    my %unique;
-    $unique{$_}++ for @reads;
-    return scalar(keys %unique);
 }
