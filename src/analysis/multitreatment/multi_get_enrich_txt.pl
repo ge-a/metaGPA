@@ -10,11 +10,11 @@ use Bio::SeqIO;
 exit main();
 
 sub main {
-    my ($fasta, $enrichment, $out, $control_bam, $selection_bam, $edgeR) = parse_args();
+    my ($fasta, $enrichment, $out, $control_bam, $selection_bam_str, $edgeR) = parse_args();
 
     my $id2edgeR_pvalue = parse_edgR($edgeR) if $edgeR;
 
-    my %bed = parse_enrichment($enrichment, $control_bam, $selection_bam, $id2edgeR_pvalue);
+    my %bed = parse_enrichment($enrichment, $control_bam, $selection_bam_str, $id2edgeR_pvalue);
 
     write_enriched_fasta($fasta, \%bed, $out);
 
@@ -24,49 +24,53 @@ sub main {
 sub parse_args {
     my $error_sentence = "USAGE : perl $0 --fasta fastafile --enrichment bedfile --out fileout --edgR edgeRfile\n";
     # assembly file combined (control and entriched), bed file containing the enrichment value, output file, optional edgR file
-    my ($fasta, $enrichment, $out, $control_bam, $selection_bam, $edgeR);
+    my ($fasta, $enrichment, $out, $control_bam, $selection_bam_str, $edgeR);
 
     GetOptions(
         "fasta=s"      => \$fasta,
         "enrichment=s" => \$enrichment,
         "out=s"        => \$out,
         "control-bam=s" => \$control_bam,
-        "selection-bam=s" => \$selection_bam,
+        "selection-bam-str=s" => \$selection_bam_str,
         "edgR=s"       => \$edgeR, 
     ) or die $error_sentence;
 
     die $error_sentence unless $fasta && $enrichment && $out;
 
-    return ($fasta, $enrichment, $out, $control_bam, $selection_bam, $edgeR);
+    return ($fasta, $enrichment, $out, $control_bam, $selection_bam_str, $edgeR);
 }
 
 sub parse_enrichment {
-    my ($enrichment, $control_bam, $selection_bam, $id2edgeR_pvalue) = @_;
+    my ($enrichment, $control_bam, $selection_bam_str, $id2edgeR_pvalue) = @_;
     my %bed;
     open(my $cov_fh, "<", $enrichment) or die "Can't open $enrichment: $!";
     my $control_all = get_total_mapped_reads($control_bam);
-    my $enriched_all = get_total_mapped_reads($selection_bam);
+    my @selection_bams = split /,/, $selection_bam_str;
+    my @enriched_all = map { get_total_mapped_reads($_) } @selection_bams;
+    my $total_selections = scalar(@selection_bams);
     while (my $line = <$cov_fh>) {
         chomp $line;
         my @tmp = split /\t/, $line;
-        my $control = $tmp[-2];
-        my $enriched = $tmp[-1];
         my $id = $tmp[0];
         my $length = $tmp[2];
 
-        my $rpkm_enriched = (($enriched + 1) * 1e9) / ($enriched_all * $length);
-        my $rpkm_control = (($control + 1) * 1e9) / ($control_all * $length);
-        my $rpkm_ratio = ($rpkm_enriched) / ($rpkm_control);
-        my $ratio = (($enriched+1)/($control+1)); # pseudocount
-        $ratio  = $rpkm_ratio;
 
-        my @info = ($control, $enriched, $ratio);
+        my $control = $tmp[6]; # assuming columns: id, 1, length, filename, 100, +, control_cov, selection_cov_0, selection_cov_1, ...
+        my @info = ($control);
 
+        for (my $i = 0; $i < $total_selections; $i++) { # may need to iterate by 2 to avoid dedups
+            my $enriched = $tmp[7 + $i]; # selection coverages start at column 7
+            my $rpkm_enriched = (($enriched + 1) * 1e9) / ($enriched_all[$i] * $length);
+            my $rpkm_control = (($control + 1) * 1e9) / ($control_all * $length);
+            my $rpkm_ratio = ($rpkm_enriched) / ($rpkm_control);
+            my $ratio = (($enriched+1)/($control+1)); # pseudocount
+            $ratio  = $rpkm_ratio;
+            push @info, $enriched, $ratio;
+        }
         if ($id2edgeR_pvalue) {
             my $logFC = $$id2edgeR_pvalue{$id}{"logFC"};
             my $Pvalue = $$id2edgeR_pvalue{$id}{"Pvalue"};
             push @info, $logFC, $Pvalue;
-
         }
         $bed{$id} = \@info;
     }

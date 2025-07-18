@@ -28,7 +28,7 @@ sub parse_arguments {
         },
         programs => {
             get_enrich => "enrichment/get_annotated_enrichment.pl",
-            add_enrich => "enrichment/get_enrichment_txt.pl",
+            add_enrich => "enrichment/get_multi_enrich_txt.pl",
         },
         cutoff => 3,
     );
@@ -36,6 +36,7 @@ sub parse_arguments {
         "generic-control=s" => \$config{input}{control},
         "generic-selection=s" => \$config{input}{selection},
         "prefix=s" => \$config{prefix},
+        "num-selections=s" => \$config{num_selections}
         "output-dir=s" => \$config{dirs}{output},
         "cutoff=f" => \$config{cutoff},
         "help|h" => \$config{help}
@@ -91,20 +92,35 @@ sub write_commands {
     my $pfam = $config->{dirs}{enrichment}."/".$prefix."control_and_selected_hmmer_format_PFAM.enriched";
     my $tigrfam = $config->{dirs}{enrichment}."/".$prefix."control_and_selected_hmmer_format_TIGRFAM.enriched";
     my $enrichment_info = $config->{dirs}{enrichment}."/".$prefix."enrichment_info.txt";
+    
+    my $num_selection = $config->{num_selections}
+
+    my @selection_bams = map {
+        $config->{dirs}{output}."/mapping/".$config->{input}{selection}."_${_}mapped_to_".$prefix.".bam"
+    } (0 .. $num_selection-1);
+
+    my @selection_dedups = map {
+        $config->{dirs}{output}."/mapping/".$config->{input}{selection}."_${_}mapped_to_".$prefix."duplicated_remove.bam"
+    } (0 .. $num_selection-1);
+
+    my $selection_bams_str = join(" ", @selection_bams);
+    my $selection_dedups_str = join(" ", @selection_dedups);
+
+    # Format: control_bam control_dedup selection_bam_0 selection_dedup_0 selection_bam_1 selection_dedup_1 ...
+    my $bam_list = "$control_bam $control_dedup";
+    for (my $i = 0; $i < $num_selection; $i++) {
+        $bam_list .= " $selection_bams[$i] $selection_dedups[$i]";
+    }
 
     push @commands, "awk 'BEGIN{ OFS=\"\\t\"; }{ print \$1, 1, \$2, FILENAME, 100, \"+\"; }' ".
         $fai." | bedtools multicov -bed - -bams ".
-        $control_bam." ".
-        $selection_bam." ".
-        $control_dedup." ".
-        $selection_dedup." > ".
+        $bam_list." > ".
         $coverage_bed;
-    # This file needs to be rewritten to not append to end of file but create new file
     push @commands, "perl ".$config->{programs}{add_enrich}.
         " --fasta ".$assembly_final.
         " --enrichment ".$coverage_bed.
-        " --control_bam ".$control_bam.
-        " --enriched_bam ".$selection_bam.
+        " --control-bam ".$control_bam.
+        " --selection-bam-str ".$selection_bams_str.
         " --out ".$enrichment_info;
     push @commands, "perl ".$config->{programs}{get_enrich}.
         " --pfam ".$hmmer2.
