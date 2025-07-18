@@ -30,8 +30,8 @@ sub parse_args {
         "fasta=s"      => \$fasta,
         "enrichment=s" => \$enrichment,
         "out=s"        => \$out,
-        "control_bam=s" => \$control_bam,
-        "enriched_bam=s" => \$enriched_bam,
+        "control-bam=s" => \$control_bam,
+        "selection-bam=s" => \$enriched_bam,
         "edgR=s"       => \$edgeR, 
     ) or die $error_sentence;
 

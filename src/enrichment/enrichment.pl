@@ -99,12 +99,11 @@ sub write_commands {
         $control_dedup." ".
         $selection_dedup." > ".
         $coverage_bed;
-    # This file needs to be rewritten to not append to end of file but create new file
     push @commands, "perl ".$config->{programs}{add_enrich}.
         " --fasta ".$assembly_final.
         " --enrichment ".$coverage_bed.
-        " --control_bam ".$control_bam.
-        " --enriched_bam ".$selection_bam.
+        " --control-bam ".$control_bam.
+        " --selection-bam ".$selection_bam.
         " --out ".$enrichment_info;
     push @commands, "perl ".$config->{programs}{get_enrich}.
         " --pfam ".$hmmer2.
