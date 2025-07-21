@@ -15,28 +15,49 @@ sub main {
     my $config = parse_arguments();
     my @commands = write_commands($config);
 
-    my $num_parallel = $config->{params}{num_selections}
+    my $num_parallel = $config->{params}{num_selections};
     my @pids;
 
-    # Run the first $num_parallel commands in parallel
-    for my $i (0 .. int($num_parallel / 2)) {
+    # Step 1: Run even-indexed commands in parallel
+    for (my $i = 0; $i < ($num_parallel + 1) * 2; $i += 2) {
+        last if $i > $#commands;
         my $pid = fork();
         if (!defined $pid) {
             die "Failed to fork: $!";
         } elsif ($pid == 0) {
-            print "Running command: $commands[$i]\n";
+            print "Running command (even): $commands[$i]\n";
             system($commands[$i]) == 0 or die "Failed to execute command: $commands[$i]";
             exit(0);
         } else {
             push @pids, $pid;
         }
     }
+    # Wait for even-indexed processes to finish
     for my $pid (@pids) {
         waitpid($pid, 0);
     }
-    # Run the remaining commands sequentially
-    for my $i ($num_parallel .. $#commands) {
-        print "Running command: $commands[$i]\n";
+    @pids = ();  # Reset for next batch
+    # Step 2: Run odd-indexed commands in parallel
+    for (my $i = 1; $i < ($num_parallel + 1) * 2; $i += 2) {
+        last if $i > $#commands;
+        my $pid = fork();
+        if (!defined $pid) {
+            die "Failed to fork: $!";
+        } elsif ($pid == 0) {
+            print "Running command (odd): $commands[$i]\n";
+            system($commands[$i]) == 0 or die "Failed to execute command: $commands[$i]";
+            exit(0);
+        } else {
+            push @pids, $pid;
+        }
+    }
+    # Wait for odd-indexed processes to finish
+    for my $pid (@pids) {
+        waitpid($pid, 0);
+    }
+    # Step 3: Run remaining commands sequentially
+    for (my $i = ($num_parallel + 1) * 2; $i <= $#commands; $i++) {
+        print "Running command (sequential): $commands[$i]\n";
         system($commands[$i]) == 0 or die "Failed to execute command: $commands[$i]";
     }
 }
@@ -68,7 +89,7 @@ sub parse_arguments {
         "selection-reads-1=s" => \$config{input}{selection_reads_1},
         "selection-reads-2=s" => \$config{input}{selection_reads_2},
         "output-dir=s" => \$config{dirs}{output},
-        "num-selections=s" => \$config{params}{num_selections}
+        "num-selections=s" => \$config{params}{num_selections},
         "threads=i" => \$config{params}{threads},
         "memory=i" => \$config{params}{memory},
         "min-length=i" => \$config{params}{min_length},
@@ -140,32 +161,36 @@ sub write_commands {
     $generic_control =~ s/.1_val_1.fq.gz//;
     $generic_control =~ s/.*\///g;
 
-    my $generic_selection = $config->{input}{selection_reads_1};
-    $generic_selection =~ s/.1_val_1.fq.gz//;
-    $generic_selection =~ s/.*\///g;
+    my @selection_files = split /,/, $config->{input}{selection_reads_1};
+    my @generic_selections = map {
+        my $name = $_;
+        $name =~ s/.1_val_1.fq.gz//;
+        $name =~ s/.*\///g;
+        $name;
+    } @selection_files;
 
     my $generic = $generic_control; $generic =~ s/control/experiment/;
-    my $generic_prefix = $config->{dirs}{assembly}."/".$generic."_".$config->{selection_num};
+    my $generic_prefix = $config->{dirs}{assembly}."/".$generic;
 
     my $control_prefix =  $config->{dirs}{assembly}."/".$generic_control;
-    my $selection_prefix = $config->{dirs}{assembly}."/".$generic_selection."_".$config->{selection_num};
 
     my $assembly_final_info = $generic_prefix."control_and_selected.fasta";
     my @control_commands = assemble_reads($config->{programs}{assembly}, 
                                         $config->{input}{control_reads_1}, $config->{input}{control_reads_2},
-                                        $control_prefix, $config->{params}{memory}, $config->{params}{threads},
-                                        $config->{programs}{clean_assembly}, $config->{params}{min_length}, 1);
-    push @commands, @control_commands;
+                                        [$control_prefix], $config->{params}{memory}, $config->{params}{threads},
+                                        $config->{programs}{clean_assembly}, $config->{params}{min_length}, 1, "control");
+    push @commands, @control_commands;    
     
-    my $num_selections = $config->{params}{num_selections}
+    my $num_selections = $config->{params}{num_selections};
+    my @selection_prefixes = map {$config->{dirs}{assembly} . "/" . $generic_selections[$_] } (0 .. $num_selections-1);
     my @selection_commands =  assemble_reads($config->{programs}{assembly}, 
                                             $config->{input}{selection_reads_1}, $config->{input}{selection_reads_2},
-                                            $selection_prefix, $config->{params}{memory}, $config->{params}{threads},
-                                            $config->{programs}{clean_assembly}, $config->{params}{min_length}, $num_selections);
+                                            \@selection_prefixes, $config->{params}{memory}, $config->{params}{threads},
+                                            $config->{programs}{clean_assembly}, $config->{params}{min_length}, $num_selections, "selection");
     push @commands, @selection_commands;
 
     # Build list of selection fasta files
-    my @selection_fasta_files = map { "${selection_prefix}_$_.fasta" } (0 .. $num_selections-1);
+    my @selection_fasta_files = map { $selection_prefixes[$_].".fasta" } (0 .. $num_selections-1);
     my $selection_concat = join(" ", @selection_fasta_files);
 
     push @commands, "cat $selection_concat $control_prefix.fasta > $assembly_final_info";
@@ -182,29 +207,26 @@ sub write_commands {
 }
 
 sub assemble_reads {
-    my ($assembly_program, $read1, $read2, $prefix, $memory, $threads, $clean_assembly, $min_length, $num_files) = @_;
+    my ($assembly_program, $read1, $read2, $prefix, $memory, $threads, $clean_assembly, $min_length, $num_files, $tag) = @_;
     my @commands;
-
-    if $num_files > 1 {
-        my @read1_files = split /,/, $read1;
-        my @read2_files = split /,/, $read2;
-    }        
-
+    
+    my @read1_files = split /,/, $read1;
+    my @read2_files = split /,/, $read2;
+    my @prefixes = @{$prefix};
     for (my $i = 0; $i < $num_files; $i++) {
         my $r1 = $read1_files[$i];
-        my $r2 = ($read2_files[$i] // ""); # handle missing read2
-        if $num_files > 1: 
-            my $prefix = $prefix . "_$i";
+        my $r2 = ($read2_files[$i] // "");
+        my $sub_prefix = $prefixes[$i];
         push @commands, $assembly_program." -1 ".$r1.
             " -2 ".$r2.
-            " -o ".$prefix."_assembly".
+            " -o ".$sub_prefix."_assembly".
             " --only-assembler".
             " --memory ".$memory.
             " --threads ".$threads;
         push @commands, "perl ".$clean_assembly.
-            " -file ".$prefix."_assembly/contigs.fasta".
-            " -tag control".
-            " --out ".$prefix.".fasta".
+            " -file ".$sub_prefix."_assembly/contigs.fasta".
+            " -tag $tag".
+            " --out ".$sub_prefix.".fasta".
             " --min_length ".$min_length;
     }
     return @commands;

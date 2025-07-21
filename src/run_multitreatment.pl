@@ -23,18 +23,17 @@ sub main {
         $config->{commands}{do_enrichment} = "run";
     }
 
-    my @fastq_control1 = @{$config->{input}{control_1}};
+    my $fastq_control1 = $config->{input}{control_1};
+    my $fastq_control2 = (defined $config->{input}{control_2}) ? {$config->{input}{control_2}} : "";
     my @fastq_selection1 = @{$config->{input}{selection_1}};
-    my @fastq_control2 = (defined $config->{input}{control_2}) ? @{$config->{input}{control_2}} : ();
     my @fastq_selection2 = (defined $config->{input}{selection_2}) ? @{$config->{input}{selection_2}} : ();
+
+    my $prefix = $fastq_control1;
+    $prefix =~ s/.1_val_1.fq.gz//; $prefix =~ s/.*\///g;
 
     # Join lists into comma-separated strings for passing to assembly
     my ($control_1, $control_2);
-    if (@fastq_control2 && $fastq_control2[0] ne "") {
-        ($control_1, $control_2) = process_fastq($fastq_control1[0], $fastq_control2[0], $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
-    } else {
-        ($control_1, $control_2) = process_fastq($fastq_control1[0], "", $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
-    }
+    ($control_1, $control_2) = process_fastq($fastq_control1, $fastq_control2, $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
 
     my ($selection_1_str, $selection_2_str);
     if (@fastq_selection2 && $fastq_selection2[0] ne "") {
@@ -51,33 +50,29 @@ sub main {
     } else {
         # Only selection1 files, process and trim each
         my @trimmed_selection1;
-         my @trimmed_selection2;
+        my @trimmed_selection2;
         for (my $i = 0; $i < @fastq_selection1; $i++) {
             my ($sel1, $sel2) = process_fastq($fastq_selection1[$i], "", $prefix."_sel".$i, $config->{dirs}{output}, $config->{commands}{do_trim});
             push @trimmed_selection1, $sel1;
             push @trimmed_selection2, $sel2;
         }
         $selection_1_str = join(",", @trimmed_selection1);
-        $selection_2_str = join(",", @trimmed_selection1);
+        $selection_2_str = join(",", @trimmed_selection2);
     }
 
-    my $prefix = $fastq_control1[0];
-    $prefix =~ s/.1_val_1.fq.gz//; $prefix =~ s/.*\///g;
-
-    my $generic_control = $fastq_control1[0];
+    my $generic_control = $fastq_control1;
     my $generic_selection = $fastq_selection1[0];
     $generic_control =~ s/.1_val_1.fq.gz//; $generic_control =~ s/.*\///g;
     $generic_selection =~ s/.1_val_1.fq.gz//; $generic_selection =~ s/.*\///g;
 
-    my $num_selections = int(get_num_selection_reads($config->{input}{selection_reads_1}) / 2)
-
+    my $num_selections = get_num_selection_reads($selection_1_str);
     # Create commands with full lists
     my $assembly_cmd = "perl analysis/multitreatment/multi_assembly.pl".
         " --control-reads-1 ".$control_1.
         " --control-reads-2 ".$control_2.
         " --selection-reads-1 ".$selection_1_str.
         " --selection-reads-2 ".$selection_2_str.
-        " --num_selections".$num_selections.
+        " --num-selections ".$num_selections.
         " --output-dir ".$config->{dirs}{output};
 
     my $mapping_cmd = "perl analysis/multitreatment/multi_mapping.pl".
@@ -85,7 +80,7 @@ sub main {
         " --control-reads-2 ".$control_2.
         " --selection-reads-1 ".$selection_1_str.
         " --selection-reads-2 ".$selection_2_str.
-        " --num_selections".$num_selections.
+        " --num-selections ".$num_selections.
         " --prefix ".$prefix.
         " --mapping-func ".$config->{mapping_func}.
         " --output-dir ".$config->{dirs}{output};
@@ -94,11 +89,11 @@ sub main {
         " --prefix ".$prefix.
         " --output-dir ".$config->{dirs}{output};
 
-    my $enrichment_cmd = "perl enrichment/enrichment.pl".
+    my $enrichment_cmd = "perl analysis/multitreatment/multi_enrichment.pl".
         " --generic-control ".$generic_control.
         " --generic-selection ".$generic_selection.
         " --prefix ".$prefix.
-        " --num_selections".$num_selections.
+        " --num-selections ".$num_selections.
         " --cutoff ".$config->{cutoff}.
         " --output-dir ".$config->{dirs}{output};
 
@@ -145,7 +140,6 @@ sub parse_arguments {
             do_mapping => "",
             do_enrichment => "",
         },
-        lite => "none",
         mapping_func => "bwa", # add command line option to specify mapping function
         cutoff => 3,
     );
@@ -158,17 +152,16 @@ sub parse_arguments {
         "annotation|AN" => \$config{commands}{do_annotation},
         "mapping|M" => \$config{commands}{do_mapping},
         "enrichment|E" => \$config{commands}{do_enrichment},
-        "lite|l" => \$config{lite},
-        "control_1|c1=s@" => \$config{input}{control_1},
+        "control_1|c1=s" => \$config{input}{control_1},
         "selection_1|s1=s@" => \$config{input}{selection_1},
-        "control_2|c2=s@" => \$config{input}{control_2},
+        "control_2|c2=s" => \$config{input}{control_2},
         "selection_2|s2=s@" => \$config{input}{selection_2},
         "outdir|o=s" => \$config{dirs}{output},
         "cutoff|c=f" => \$config{cutoff},
         "help|h" => \$config{help}
     ) or usage();
 
-    $config{dirs}{output} = make_unique_path($config{dirs}{output}, $config{lite},
+    $config{dirs}{output} = make_unique_path($config{dirs}{output},
                                                 $config{commands}{do_assembly}, 
                                                 $config{commands}{do_annotation}, 
                                                 $config{commands}{do_mapping}, 
@@ -187,7 +180,7 @@ Usage: $0 [options]
 Required:
     --control, -c FILE         Path to control FASTQ files (e.g., PF4.1_val_1.fq.gz)
     --selection, -s FILE       Path to selection FASTQ files (e.g., PF1.1_val_1.fq.gz)
-    --outdir, -o DIR          Output directory
+    --outdir, -o DIR           Output directory
 
 Optional:
     --trim, -t <trimmer>      Specify trimmer to use (default: trim_galore)
