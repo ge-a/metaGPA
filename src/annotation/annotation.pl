@@ -80,7 +80,7 @@ sub write_commands {
     my ($config) = @_;
     my @commands;
 
-    my $assembly_file = $config->{dirs}{output}."/assembly/".$config->{input}{prefix}."control_and_selected.fasta";
+    my $assembly_file = $config->{dirs}{output}."/assembly/".$config->{input}{prefix}."control_and_selected.nd.fasta";
     my $translated_assembly_final = $config->{dirs}{output}."/assembly/".$config->{input}{prefix}."control_and_selected.faa";
 
     push @commands, "perl ".$config->{programs}{translate}.

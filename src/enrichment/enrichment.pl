@@ -79,8 +79,8 @@ sub write_commands {
 
     my $prefix = $config->{prefix};
 
-    my $fai = $config->{dirs}{output}."/assembly/".$prefix."control_and_selected.fasta.fai";
-    my $assembly_final = $config->{dirs}{output}."/assembly/".$prefix."control_and_selected.fasta";
+    my $fai = $config->{dirs}{output}."/assembly/".$prefix."control_and_selected.nd.fasta.fai";
+    my $assembly_final = $config->{dirs}{output}."/assembly/".$prefix."control_and_selected.nd.fasta";
     my $control_bam = $config->{dirs}{output}."/mapping/".$config->{input}{control}."mapped_to_".$prefix.".bam";
     my $selection_bam = $config->{dirs}{output}."/mapping/".$config->{input}{selection}."mapped_to_".$prefix.".bam";
     my $control_dedup = $config->{dirs}{output}."/mapping/".$config->{input}{control}."mapped_to_".$prefix."duplicated_remove.bam";

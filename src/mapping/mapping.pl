@@ -124,7 +124,7 @@ sub write_commands {
 
     my $generic = $config->{prefix};
 
-    my $assembly_final = $config->{dirs}{output}."/assembly/".$generic."control_and_selected.fasta";
+    my $assembly_final = $config->{dirs}{output}."/assembly/".$generic."control_and_selected.nd.fasta";
     my $control_bam = $config->{dirs}{mapping}."/".$generic_control."mapped_to_".$generic.".bam";
     my $selection_bam = $config->{dirs}{mapping}."/".$generic_selection."mapped_to_".$generic.".bam";
     my $control_dedup = $config->{dirs}{mapping}."/".$generic_control."mapped_to_".$generic."duplicated_remove.bam";
