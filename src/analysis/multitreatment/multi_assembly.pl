@@ -1,10 +1,13 @@
 use strict;
 use warnings;
 use Cwd;
+use FindBin qw($Bin); 
+use File::Spec;
 use Getopt::Long;
 use Getopt::Long qw(GetOptions);
 use File::Temp qw(tempfile);
 use Bio::SeqIO;
+use lib "$Bin/../..";
 use utils qw(make_dir 
             construct_paired_filename
             append_assemblies);
@@ -80,7 +83,7 @@ sub parse_arguments {
         },
         programs => {
             assembly => "metaspades.py",
-            clean_assembly => "assembly/clean_assembly.pl",
+            clean_assembly => File::Spec->catfile($Bin, "assembly", "clean_assembly.pl"),
         }
     );
     GetOptions(

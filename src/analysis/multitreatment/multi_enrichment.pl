@@ -1,10 +1,13 @@
 use strict;
 use warnings;
 use Cwd;
+use FindBin qw($Bin); 
+use File::Spec;
 use Getopt::Long;
 use Getopt::Long qw(GetOptions);
 use File::Temp qw(tempfile);
 use Bio::SeqIO;
+use lib "$Bin/../..";
 use utils qw(make_dir);
 
 exit main();
@@ -27,8 +30,8 @@ sub parse_arguments {
             mapping => "enrichment",
         },
         programs => {
-            get_enrich => "enrichment/get_annotated_enrichment.pl",
-            add_enrich => "enrichment/get_multi_enrich_txt.pl",
+            get_enrich => File::Spec->catfile($Bin, "enrichment", "get_annotated_enrichment.pl"),
+            add_enrich => File::Spec->catfile($Bin, "enrichment", "get_enrichment_txt.pl"),
         },
         cutoff => 3,
     );
@@ -36,7 +39,7 @@ sub parse_arguments {
         "generic-control=s" => \$config{input}{control},
         "generic-selection=s" => \$config{input}{selection},
         "prefix=s" => \$config{prefix},
-        "num-selections=s" => \$config{num_selections}
+        "num-selections=s" => \$config{num_selections},
         "output-dir=s" => \$config{dirs}{output},
         "cutoff=f" => \$config{cutoff},
         "help|h" => \$config{help}
@@ -80,8 +83,8 @@ sub write_commands {
 
     my $prefix = $config->{prefix};
 
-    my $fai = $config->{dirs}{output}."/assembly/".$prefix."control_and_selected.fasta.fai";
-    my $assembly_final = $config->{dirs}{output}."/assembly/".$prefix."control_and_selected.fasta";
+    my $fai = $config->{dirs}{output}."/assembly/".$prefix."control_and_selected.nd.fasta.fai";
+    my $assembly_final = $config->{dirs}{output}."/assembly/".$prefix."control_and_selected.nd.fasta";
     my $control_bam = $config->{dirs}{output}."/mapping/".$config->{input}{control}."mapped_to_".$prefix.".bam";
     my $selection_bam = $config->{dirs}{output}."/mapping/".$config->{input}{selection}."mapped_to_".$prefix.".bam";
     my $control_dedup = $config->{dirs}{output}."/mapping/".$config->{input}{control}."mapped_to_".$prefix."duplicated_remove.bam";
@@ -93,7 +96,7 @@ sub write_commands {
     my $tigrfam = $config->{dirs}{enrichment}."/".$prefix."control_and_selected_hmmer_format_TIGRFAM.enriched";
     my $enrichment_info = $config->{dirs}{enrichment}."/".$prefix."enrichment_info.txt";
     
-    my $num_selection = $config->{num_selections}
+    my $num_selection = $config->{num_selections};
 
     my @selection_bams = map {
         $config->{dirs}{output}."/mapping/".$config->{input}{selection}."_${_}mapped_to_".$prefix.".bam"
@@ -113,7 +116,7 @@ sub write_commands {
     }
 
     push @commands, "awk 'BEGIN{ OFS=\"\\t\"; }{ print \$1, 1, \$2, FILENAME, 100, \"+\"; }' ".
-        $fai." | bedtools multicov -bed - -bams ".
+        $fai." | bedtools multicov -bed --bams ".
         $bam_list." > ".
         $coverage_bed;
     push @commands, "perl ".$config->{programs}{add_enrich}.

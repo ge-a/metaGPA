@@ -2,7 +2,7 @@ use strict;
 use Cwd;
 use Getopt::Long;
 use POSIX ":sys_wait_h";
-use FindBin qw($Bin);   # $Bin now holds the full path to the directory of this script
+use FindBin qw($Bin);
 use File::Spec;
 use lib File::Spec->catdir($Bin, "src");
 use utils qw(make_dir 
