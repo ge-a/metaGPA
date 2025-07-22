@@ -15,4 +15,4 @@ dependencies:
   - perl-math-cdf=0.1
   - quast=5.3.0
   - perl-statistics-descriptive
-  - seqtk=1.4-r122
+  - seqtk=1.4
