@@ -1,10 +1,13 @@
 use strict;
 use warnings;
 use Cwd;
+use FindBin qw($Bin); 
+use File::Spec;
 use Getopt::Long;
 use Getopt::Long qw(GetOptions);
 use File::Temp qw(tempfile);
 use Bio::SeqIO;
+use lib "$Bin/..";
 use utils qw(make_dir 
             construct_paired_filename);
 
@@ -53,7 +56,7 @@ sub parse_arguments {
             selection_reads_2 => "use_regex"
         },
         programs => {
-            mapping => "mapping/run_dna_map.pl",
+            mapping => File::Spec->catfile($Bin, "run_dna_map.pl"),
             picard => "/mnt/home/ettwiller/anaconda3/share/picard-2.27.1-0/picard.jar",
             mapping_func => "bwa"
         }

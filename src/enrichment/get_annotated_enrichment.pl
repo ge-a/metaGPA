@@ -1,11 +1,14 @@
 use strict;
 use warnings;
 use Cwd;
+use FindBin qw($Bin); 
+use File::Spec;
 use Getopt::Long qw(GetOptions);
 use Statistics::Descriptive;
 use File::Temp qw(tempfile);
 use Data::Dumper;
 use Math::CDF qw(:all);
+use lib "$Bin/..";
 use utils qw(parse_pfam_file 
             calculate_enrichment_stats
             parse_bed);

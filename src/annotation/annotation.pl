@@ -1,10 +1,13 @@
 use strict;
 use warnings;
 use Cwd;
+use FindBin qw($Bin); 
+use File::Spec;
 use Getopt::Long;
 use Getopt::Long qw(GetOptions);
 use File::Temp qw(tempfile);
 use Bio::SeqIO;
+use lib "$Bin/..";
 use utils qw(make_dir);
 
 exit main();
@@ -30,8 +33,8 @@ sub parse_arguments {
             annotation => "annotation",
         },
         programs => {
-            translate => "annotation/translate.pl",
-            hmmer => "annotation/run_hmmer.pl",
+            translate => File::Spec->catfile($Bin, "translate.pl"),
+            hmmer => File::Spec->catfile($Bin, "run_hmmer.pl"),
         }
     );
     GetOptions(

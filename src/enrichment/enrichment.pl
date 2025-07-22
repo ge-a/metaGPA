@@ -1,10 +1,13 @@
 use strict;
 use warnings;
 use Cwd;
+use FindBin qw($Bin); 
+use File::Spec;
 use Getopt::Long;
 use Getopt::Long qw(GetOptions);
 use File::Temp qw(tempfile);
 use Bio::SeqIO;
+use lib "$Bin/..";
 use utils qw(make_dir);
 
 exit main();
@@ -24,11 +27,11 @@ sub parse_arguments {
     my %config = (
         dirs => {
             output => "output",
-            mapping => "enrichment",
+            enrichment => "enrichment",
         },
         programs => {
-            get_enrich => "enrichment/get_annotated_enrichment.pl",
-            add_enrich => "enrichment/get_enrichment_txt.pl",
+            get_enrich => File::Spec->catfile($Bin, "get_annotated_enrichment.pl"),
+            add_enrich => File::Spec->catfile($Bin, "get_enrichment_txt.pl"),
         },
         cutoff => 3,
     );

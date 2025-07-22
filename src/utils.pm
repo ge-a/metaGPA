@@ -58,7 +58,7 @@ sub get_DNA {
 sub make_unique_path {
     my ($path, $lite, $assemble, $annotate, $map, $enrich) = @_;
 
-    my $output_dir = "../output";
+    my $output_dir = "output";
     make_dir($output_dir);
 
     my $basename = $path;
@@ -72,7 +72,7 @@ sub make_unique_path {
     my $counter = 1;
     my $unique_path = $full_path;
     while (-e $unique_path) {
-        $unique_path = "../output/${path}_$counter";
+        $unique_path = "output/${path}_$counter";
         $counter++;
     }
     my $prev_path = $unique_path; $prev_path =~ s/_(\d+)$/'_' . ($1 - 1)/e;
@@ -94,7 +94,7 @@ sub make_unique_path {
 sub process_fastq {
     my ($fq_1, $fq_2, $generic, $outdir, $trim) = @_;
 
-    my $data_dir = "../data";
+    my $data_dir = "data";
     system("mkdir -p $data_dir") unless -d $data_dir;
 
     # compress fq to fq.gz if it is not already compressed
@@ -140,38 +140,6 @@ sub construct_paired_filename {
     my $read2_file = $read1_file;
     $read2_file =~ s/1_val_1.fq.gz/2_val_2.fq.gz/;
     return $read2_file;
-}
-
-sub append_assemblies {
-    my $out_dir = pop @_;
-    my @dirs = @_;
-    my $base_path = "../output/";
-    my $appended_fai;
-    my $appended_fasta;
-    my $appended_faa;
-    foreach my $dir (@dirs) {
-        my $assembly_path = $base_path.$dir."/assembly/";
-        opendir(my $dh, $assembly_path) or die "Cannot open directory $assembly_path: $!";
-        my @files = readdir($dh);
-        closedir($dh);
-        foreach my $file (@files) {
-            my $full_path = $assembly_path . $file;
-            if ($file =~ /control_and_selected\.fasta$/) {
-                $appended_fasta .= slurp_file($full_path);
-            }
-            if ($file =~ /control_and_selected\.faa$/) {
-                $appended_faa .= slurp_file($full_path);
-            }
-            if ($file =~ /control_and_selected\.fasta\.fai$/) {
-                $appended_fai .= slurp_file($full_path);
-            }
-        }
-    }
-    system("mkdir -p ../output/".$out_dir."/assembly") unless -d "../output/".$out_dir."/assembly";
-
-    write_file("../output/".$out_dir."/assembly/appended_control_and_selected.fasta", $appended_fasta);
-    write_file("../output/".$out_dir."/assembly/appended_control_and_selected.faa",   $appended_faa);
-    write_file("../output/".$out_dir."/assembly/appended_control_and_selected.fasta.fai", $appended_fai);
 }
 
 sub parse_pfam {

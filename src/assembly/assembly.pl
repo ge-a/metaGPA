@@ -3,11 +3,13 @@ use warnings;
 use Cwd;
 use Getopt::Long;
 use Getopt::Long qw(GetOptions);
+use FindBin qw($Bin); 
+use File::Spec;
 use File::Temp qw(tempfile);
 use Bio::SeqIO;
+use lib "$Bin/..";
 use utils qw(make_dir 
-            construct_paired_filename
-            append_assemblies);
+            construct_paired_filename);
 
 exit main();
 
@@ -54,7 +56,7 @@ sub parse_arguments {
         },
         programs => {
             assembly => "metaspades.py",
-            clean_assembly => "assembly/clean_assembly.pl",
+            clean_assembly => File::Spec->catfile($Bin, "clean_assembly.pl"),
         }
     );
     GetOptions(
@@ -170,7 +172,7 @@ sub write_commands {
     push @commands, "cat ".$selection_prefix.".fasta ".$control_prefix.".fasta > ".
         $assembly_final_info;
     push @commands, "cd-hit-est -i ".$assembly_final_info.
-        " -o ".$generic_prefix."control_and_selected.nd.fasta". # what is this nd
+        " -o ".$generic_prefix."control_and_selected.nd.fasta". 
         " -c 0.95 -n 10 -M 0 -T ".$config->{params}{threads}.
         " -d 0 -r 1 -G 1 -g 1";
     push @commands, "samtools faidx ".$generic_prefix."control_and_selected.nd.fasta";

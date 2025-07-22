@@ -2,7 +2,9 @@ use strict;
 use Cwd;
 use Getopt::Long;
 use POSIX ":sys_wait_h";
-use lib 'src';
+use FindBin qw($Bin);   # $Bin now holds the full path to the directory of this script
+use File::Spec;
+use lib File::Spec->catdir($Bin, "src");
 use utils qw(make_dir 
             process_fastq 
             make_unique_path);
@@ -57,8 +59,13 @@ sub main {
         $generic_control =~ s/.1_val_1.fq.gz//; $generic_control =~ s/.*\///g;
         $generic_selection =~ s/.1_val_1.fq.gz//; $generic_selection =~ s/.*\///g;  
 
+        my $assembly_path = File::Spec->catfile($Bin, "src", "assembly", "assembly.pl");
+        my $mapping_path = File::Spec->catfile($Bin, "src", "mapping", "mapping.pl");
+        my $annotation_path = File::Spec->catfile($Bin, "src", "annotation", "annotation.pl");
+        my $enrichment_path = File::Spec->catfile($Bin, "src", "enrichment", "enrichment.pl");
+
         # Create commands
-        my $assembly_cmd = "perl assembly/assembly.pl".
+        my $assembly_cmd = "perl $assembly_path".
             " --control-reads-1 ".$control_1.
             " --control-reads-2 ".$control2.
             " --selection-reads-1 ".$selection_1.
@@ -66,7 +73,7 @@ sub main {
             " --threads ".$config->{threads}.
             " --memory ".$config->{memory}.
             " --output-dir ".$config->{dirs}{output};
-        my $mapping_cmd = "perl mapping/mapping.pl".
+        my $mapping_cmd = "perl $mapping_path".
             " --control-reads-1 ".$control_1.
             " --control-reads-2 ".$control2.
             " --selection-reads-1 ".$selection_1.
@@ -74,10 +81,10 @@ sub main {
             " --prefix ".$prefix.
             " --mapping-func ".$config->{mapping_func}.
             " --output-dir ".$config->{dirs}{output};
-        my $annotation_cmd = "perl annotation/annotation.pl".
+        my $annotation_cmd = "perl $annotation_path".
             " --prefix ".$prefix.
             " --output-dir ".$config->{dirs}{output};
-        my $enrichment_cmd = "perl enrichment/enrichment.pl".
+        my $enrichment_cmd = "perl $enrichment_path".
             " --generic-control ".$generic_control.
             " --generic-selection ".$generic_selection.
             " --prefix ".$prefix.
