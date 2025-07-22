@@ -63,8 +63,8 @@ sub main {
             " --control-reads-2 ".$control2.
             " --selection-reads-1 ".$selection_1.
             " --selection-reads-2 ".$selection_2.
-            " --threads ".$config{threads}.
-            " --memory ".$config{memory}.
+            " --threads ".$config->{threads}.
+            " --memory ".$config->{memory}.
             " --output-dir ".$config->{dirs}{output};
         my $mapping_cmd = "perl mapping/mapping.pl".
             " --control-reads-1 ".$control_1.
