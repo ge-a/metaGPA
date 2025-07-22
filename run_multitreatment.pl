@@ -63,9 +63,15 @@ sub main {
     }
 
     my $generic_control = $fastq_control1;
-    my $generic_selection = $fastq_selection1[0];
     $generic_control =~ s/.1_val_1.fq.gz//; $generic_control =~ s/.*\///g;
-    $generic_selection =~ s/.1_val_1.fq.gz//; $generic_selection =~ s/.*\///g;
+    my @selection_files = split /,/, $selection_1_str;
+    my @generic_selections = map {
+        my $name = $_;
+        $name =~ s/.1_val_1.fq.gz//;
+        $name =~ s/.*\///g;
+        $name;
+    } @selection_files;
+    my $selection_list = join(",", @generic_selections);
 
     my $assembly_path = File::Spec->catfile($Bin, "src", "analysis", "multitreatment", "multi_assembly.pl");
     my $mapping_path = File::Spec->catfile($Bin, "src", "analysis", "multitreatment", "multi_mapping.pl");
@@ -98,7 +104,7 @@ sub main {
 
     my $enrichment_cmd = "perl $enrichment_path".
         " --generic-control ".$generic_control.
-        " --generic-selection ".$generic_selection.
+        " --generic-selection ".$selection_list.
         " --prefix ".$prefix.
         " --num-selections ".$num_selections.
         " --cutoff ".$config->{cutoff}.

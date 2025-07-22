@@ -45,7 +45,7 @@ sub parse_enrichment {
     my %bed;
     open(my $cov_fh, "<", $enrichment) or die "Can't open $enrichment: $!";
     my $control_all = get_total_mapped_reads($control_bam);
-    my @selection_bams = split /,/, $selection_bam_str;
+    my @selection_bams = split(/,/, $selection_bam_str);
     my @enriched_all = map { get_total_mapped_reads($_) } @selection_bams;
     my $total_selections = scalar(@selection_bams);
     while (my $line = <$cov_fh>) {
@@ -54,12 +54,12 @@ sub parse_enrichment {
         my $id = $tmp[0];
         my $length = $tmp[2];
 
-
-        my $control = $tmp[6]; # assuming columns: id, 1, length, filename, 100, +, control_cov, selection_cov_0, selection_cov_1, ...
+        my $control = $tmp[6]; # assuming columns: id, 1, length, filename, 100, +, control_cov, control_dedup_cov, selection_cov_0, selection_cov_0_dedup, selection_cov_1, ...
         my @info = ($control);
 
-        for (my $i = 0; $i < $total_selections; $i++) { # may need to iterate by 2 to avoid dedups
-            my $enriched = $tmp[7 + $i]; # selection coverages start at column 7
+        for (my $i = 0; $i < $total_selections; $i += 1) { # may need to iterate by 2 to avoid dedups
+            
+            my $enriched = $tmp[8 + ($i * 2)]; # selection coverages start at column 8
             my $rpkm_enriched = (($enriched + 1) * 1e9) / ($enriched_all[$i] * $length);
             my $rpkm_control = (($control + 1) * 1e9) / ($control_all * $length);
             my $rpkm_ratio = ($rpkm_enriched) / ($rpkm_control);
@@ -92,6 +92,8 @@ sub write_enriched_fasta {
         my $seqstr = $seq->seq;
         $id =~ s/cov_.*//;
         my $enrichment = $enrichment_ref ? join("\t", @$enrichment_ref) : "";
+        print("ENRICHMENT REF");
+        print($enrichment);
         print $info_fh "$id\t$enrichment\n";
     }
     close $info_fh;
