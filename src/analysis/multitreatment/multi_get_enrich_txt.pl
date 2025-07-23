@@ -10,13 +10,13 @@ use Bio::SeqIO;
 exit main();
 
 sub main {
-    my ($fasta, $enrichment, $out, $control_bam, $selection_bam_str, $edgeR) = parse_args();
+    my ($fasta, $enrichment, $num_selections, $out, $control_bam, $selection_bam_str, $edgeR) = parse_args();
 
     my $id2edgeR_pvalue = parse_edgR($edgeR) if $edgeR;
 
     my %bed = parse_enrichment($enrichment, $control_bam, $selection_bam_str, $id2edgeR_pvalue);
 
-    write_enriched_fasta($fasta, \%bed, $out);
+    write_enriched_fasta($fasta, \%bed, $num_selections, $out);
 
     return 0;
 }
@@ -24,11 +24,12 @@ sub main {
 sub parse_args {
     my $error_sentence = "USAGE : perl $0 --fasta fastafile --enrichment bedfile --out fileout --edgR edgeRfile\n";
     # assembly file combined (control and entriched), bed file containing the enrichment value, output file, optional edgR file
-    my ($fasta, $enrichment, $out, $control_bam, $selection_bam_str, $edgeR);
+    my ($fasta, $enrichment, $out, $num_selections, $control_bam, $selection_bam_str, $edgeR);
 
     GetOptions(
         "fasta=s"      => \$fasta,
         "enrichment=s" => \$enrichment,
+        "num-selections=s" => \$num_selections,
         "out=s"        => \$out,
         "control-bam=s" => \$control_bam,
         "selection-bam-str=s" => \$selection_bam_str,
@@ -37,7 +38,7 @@ sub parse_args {
 
     die $error_sentence unless $fasta && $enrichment && $out;
 
-    return ($fasta, $enrichment, $out, $control_bam, $selection_bam_str, $edgeR);
+    return ($fasta, $enrichment, $num_selections, $out, $control_bam, $selection_bam_str, $edgeR);
 }
 
 sub parse_enrichment {
@@ -54,12 +55,12 @@ sub parse_enrichment {
         my $id = $tmp[0];
         my $length = $tmp[2];
 
-        my $control = $tmp[6]; # assuming columns: id, 1, length, filename, 100, +, control_cov, control_dedup_cov, selection_cov_0, selection_cov_0_dedup, selection_cov_1, ...
+        my $control = $tmp[7]; # assuming columns: id, 1, length, filename, 100, +, control_cov, control_dedup_cov, selection_cov_0, selection_cov_0_dedup, selection_cov_1, ...
         my @info = ($control);
 
         for (my $i = 0; $i < $total_selections; $i += 1) { # may need to iterate by 2 to avoid dedups
             
-            my $enriched = $tmp[8 + ($i * 2)]; # selection coverages start at column 8
+            my $enriched = $tmp[9 + ($i * 2)]; # selection coverages start at column 8
             my $rpkm_enriched = (($enriched + 1) * 1e9) / ($enriched_all[$i] * $length);
             my $rpkm_control = (($control + 1) * 1e9) / ($control_all * $length);
             my $rpkm_ratio = ($rpkm_enriched) / ($rpkm_control);
@@ -79,21 +80,22 @@ sub parse_enrichment {
 }
 
 sub write_enriched_fasta {
-    my ($fasta, $bed_ref, $out) = @_;
+    my ($fasta, $bed_ref, $num_selections, $out) = @_;
     my %bed = %$bed_ref;
 
     my $seq_in = Bio::SeqIO->new(-format => 'fasta', -file => $fasta);
-
     open(my $info_fh, ">", $out) or die "Can't write to $out: $!";
-
+    my @header = ("id", "control_count");
+    for (my $i = 1; $i <= $num_selections; $i++) {
+        push @header, "selection_${i}_count", "selection_${i}_ratio";
+    }
+    print $info_fh join("\t", @header), "\n";
     while (my $seq = $seq_in->next_seq()) {
         my $id = $seq->id;
         my $enrichment_ref = $bed{$id};
         my $seqstr = $seq->seq;
         $id =~ s/cov_.*//;
         my $enrichment = $enrichment_ref ? join("\t", @$enrichment_ref) : "";
-        print("ENRICHMENT REF");
-        print($enrichment);
         print $info_fh "$id\t$enrichment\n";
     }
     close $info_fh;

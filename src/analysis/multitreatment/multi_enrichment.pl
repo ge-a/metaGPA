@@ -115,17 +115,20 @@ sub write_commands {
     push @commands, "perl ".$config->{programs}{add_enrich}.
         " --fasta ".$assembly_final.
         " --enrichment ".$coverage_bed.
+        " --num-selections ".$num_selection.
         " --control-bam ".$control_bam.
         " --selection-bam-str ".$selection_list.
         " --out ".$enrichment_info;
     push @commands, "perl ".$config->{programs}{get_enrich}.
         " --pfam ".$hmmer2.
-        " --enrichment_txt ".$enrichment_info.
+        " --enrichment-txt ".$enrichment_info.
+        " --num-selection ".$num_selection.
         " --out ".$pfam.
         " --cutoff ".$config->{cutoff};
     push @commands, "perl ".$config->{programs}{get_enrich}.
         " --pfam ".$hmmer4.
-        " --enrichment_txt ".$enrichment_info.
+        " --enrichment-txt ".$enrichment_info.
+        " --num-selection ".$num_selection.
         " --out ".$tigrfam.
         " --cutoff ".$config->{cutoff};
     return @commands;
