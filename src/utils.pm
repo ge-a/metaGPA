@@ -330,6 +330,7 @@ sub parse_enrichment_info {
     while (my $line = <$fh>) {
         chomp $line;
         next if $line =~ /^\s*$/; # skip empty lines
+        next if $line =~ /^id\b/i;          # skip header line
         my ($id, @values) = split /\t/, $line;
         $enrichment_hash{$id} = \@values;
     }
