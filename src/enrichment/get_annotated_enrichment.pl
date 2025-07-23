@@ -35,20 +35,29 @@ sub main {
 }
 
 sub write_enrichment_output {
-    my ($result4, $pfam2desc, $TOTAL, $out_fh) = @_;
-    foreach my $e (sort { $a <=> $b } keys %$result4) {
-        my $pfams = $result4->{$e};
-        foreach my $pfam (keys %$pfams) {
-            my $x = $pfams->{$pfam};
-            my ($n1, $n2, $freq) = split /\_/, $x;
-            my $tot = $n1 + $n2;
-            if ($tot > $TOTAL) {
-                my $description = $pfam2desc->{$pfam};
-                print $out_fh "$e $pfam $x $description\n";
+    my ($pvalue_to_pfam_stats, $pfam_to_description, $min_total_count, $out_fh) = @_;
+
+    # Print header (optional, comment out if not needed)
+    print $out_fh join("\t", "p_value", "pfam_id", "enriched", "total", 
+        "local_ratio", "global_enrichment_prob", "description"), "\n";
+    foreach my $p_value (sort { $a <=> $b } keys %$pvalue_to_pfam_stats) {
+        my $pfam_stats = $pvalue_to_pfam_stats->{$p_value};
+        foreach my $pfam_id (keys %$pfam_stats) {
+            my $stats_ref = $pfam_stats->{$pfam_id};
+            my $stats_string = $stats_ref->{stats};  # e.g., "6_10_0.6000"
+            my $global_enrichment_prob = $stats_ref->{global_enrichment_probability};
+
+            my ($enriched_count, $total_count, $local_ratio) = split /_/, $stats_string;
+            # Apply filter: only write if total count > threshold
+            if ($total_count > $min_total_count) {
+                my $description = $pfam_to_description->{$pfam_id} // "NA";
+                print $out_fh join("\t", $p_value, $pfam_id, $enriched_count,
+                    $total_count, $local_ratio, $global_enrichment_prob, $description), "\n";
             }
         }
     }
 }
+
 
 sub parse_args {
     my $error_sentence = "USAGE : perl $0 --pfam pfam_tab --out output_file OPTIONAL : --cutoff 10 (default 3) --direction depleted (default enriched) --read_count_min 100 (total number of reads in control+enriched, default 0) --contig_min 500 (length of the contig in bp, default 0) --unwanted contif.bed (defaut NONE) --pfam_cutoff 0.0000001 (this is the pfam Evalue. Anything matching of below this cutoff is used, DEFAULT no cutoff) --pfam_number 10 (at least 10 instances of a particular pfam, DEFAULT=0)";

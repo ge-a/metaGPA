@@ -206,71 +206,106 @@ sub get_control_enriched_reads {
 }
 
 sub parse_pfam_file {
-    my ($pfam, $enrichment_file_path, $hash_contig, $read_count_min, $contig_min, $pfam_cutoff, $cutoff, $direction) = @_;
-    my (%result2, %result3, %pfam2desc);
-    my $enrichment_info = parse_enrichment_info($enrichment_file_path);
-    open(my $pfam_fh, "<", $pfam) or die "Can't open $pfam\n";
+    my (
+        $pfam_file_path,         # Path to Pfam output file
+        $enrichment_file_path,   # Path to file with read enrichment info
+        $excluded_contigs_ref,   # Hashref of contig names to exclude
+        $min_read_count,         # Minimum total read count threshold
+        $min_contig_length,      # Minimum contig length threshold
+        $pfam_evalue_cutoff,     # Maximum acceptable Pfam e-value
+        $enrichment_cutoff,      # Enrichment ratio cutoff
+        $direction               # 'enriched' or 'depleted' based on how ratio should be interpreted
+    ) = @_;
+
+    my (%pfam_to_status_contigs, %status_to_contigs, %pfam_to_description);
+    my $enrichment_data = parse_enrichment_info($enrichment_file_path);
+    open(my $pfam_fh, "<", $pfam_file_path) or die "Can't open Pfam file: $pfam_file_path\n";
+
     while (my $line = <$pfam_fh>) {
         chomp $line;
-        my @tmp = split /\s+/, $line;   
-        if ($tmp[0] !~ /^NODE_\d+_length_\d+_(?:selection|control)-\w+$/) {
+        my @fields = split /\s+/, $line;
+        next unless $fields[0] =~ /^NODE_\d+_length_\d+_(?:selection|control)-\w+$/;
+        my $full_contig_name = $fields[0];
+        my $pfam_id          = $fields[4];
+        my $pfam_description = $fields[3];  
+        my $pfam_evalue      = $fields[6];
+        # Normalize contig name to group by selection/control
+        my $normalized_contig_name = $full_contig_name;
+        $normalized_contig_name =~ s/((?:selection|control)).*$/$1/;
+        if ($excluded_contigs_ref && $$excluded_contigs_ref{$full_contig_name}) {
+            print STDERR "$full_contig_name is removed (excluded)\n";
             next;
         }
-        my $contig = $tmp[0];
-        my $pfam_Evalue = $tmp[6]; 
-        my $contig_name_to_check = $contig;
-        $contig =~ s/((?:selection|control)).*$/$1/;
-
-        # Use the new helper function
-        my ($control_reads, $enriched_reads) = get_control_enriched_reads($contig, $enrichment_info);
-
-        my $read_count = $control_reads + $enriched_reads;
-        my $ratio = $enrichment_info->{$contig}[2];
-        $contig =~ /length_(\S+)_/;
-        my $contig_length = $1;
-        my $status ="rejected";
-        if ($hash_contig && $$hash_contig{$contig_name_to_check}) {
-            print STDERR "$contig_name_to_check is removed\n";
+        my ($control_reads, $selection_reads) = get_control_enriched_reads($normalized_contig_name, $enrichment_data);
+        my $total_read_count = $control_reads + $selection_reads;
+        my $enrichment_ratio = $enrichment_data->{$normalized_contig_name}[2];
+        my $contig_length;
+        if ($normalized_contig_name =~ /length_(\d+)_/) {
+            $contig_length = $1;
+        } else {
+            warn "Could not extract contig length from $normalized_contig_name\n";
+            next;
         }
-        elsif ($read_count > $read_count_min && $contig_length > $contig_min && $pfam_Evalue < $pfam_cutoff) {
+        if ($total_read_count > $min_read_count && $contig_length > $min_contig_length && $pfam_evalue < $pfam_evalue_cutoff) {
+            my $status;
             if ($direction eq "depleted") {
-                $status = ($ratio < $cutoff) ? "enriched" : "depleted";
+                # If direction is "depleted", low ratio is "enriched"
+                $status = ($enrichment_ratio < $enrichment_cutoff) ? "enriched" : "depleted";
             } else {
-                $status = ($ratio >= $cutoff) ? "enriched" : "depleted";
+                # Default: high ratio is "enriched"
+                $status = ($enrichment_ratio >= $enrichment_cutoff) ? "enriched" : "depleted";
             }
-            my $pfam = $tmp[4];  
-            my $hit = $tmp[6];
-            my $description = $tmp[3];
-            $result2{$pfam}{$status}{$contig}++;
-            $result3{$status}{$contig}++;
-            $pfam2desc{$pfam}=$description;
+            # Store the filtered result in structured hashes
+            $pfam_to_status_contigs{$pfam_id}{$status}{$normalized_contig_name}++;
+            $status_to_contigs{$status}{$normalized_contig_name}++;
+            $pfam_to_description{$pfam_id} = $pfam_description;
         }
     }
     close $pfam_fh;
-    return (\%result2, \%result3, \%pfam2desc);
+    return (\%pfam_to_status_contigs, \%status_to_contigs, \%pfam_to_description);
 }
 
 sub calculate_enrichment_stats {
-    my ($result2, $result3) = @_;
-    my %result4;
+    my ($pfam_to_status_contigs_ref, $status_to_contigs_ref) = @_;
+    my %pvalue_to_pfam_stats;
 
-    my $Ns = $result3->{"depleted"};
-    my $ns = $result3->{"enriched"};
-    my $n = keys %$ns;
-    my $N = keys %$Ns;
+    # Total enriched and depleted contigs globally
+    my $global_enriched_contigs = $status_to_contigs_ref->{"enriched"} || {};
+    my $global_depleted_contigs = $status_to_contigs_ref->{"depleted"} || {};
 
-    foreach my $pfam (keys %$result2) {
-        my $xs = $result2->{$pfam}{"enriched"};
-        my $ys = $result2->{$pfam}{"depleted"};
-        my $x = keys %$xs; $x++; # pseudocount
-        my $y = keys %$ys; $y++; # pseudocount
-        my $total = $x + $y;
-        my $proba = $n / ($n + $N);
-        my $test = 1 - (Math::CDF::pbinom($x, $total, $proba));
-        my $stats = $x."_".$total."_".$proba;
-        $result4{$test}{$pfam} = $stats;
+    my $total_enriched_global = keys %$global_enriched_contigs;
+    my $total_depleted_global = keys %$global_depleted_contigs;
+    my $total_global = $total_enriched_global + $total_depleted_global;
+
+    # Global background enrichment probability (used for binomial test)
+    my $global_enrichment_probability = $total_global > 0
+        ? $total_enriched_global / $total_global
+        : 0.5;  # fallback to neutral probability if total is zero
+
+    foreach my $pfam_id (keys %$pfam_to_status_contigs_ref) {
+        my $enriched_contigs = $pfam_to_status_contigs_ref->{$pfam_id}{"enriched"} || {};
+        my $depleted_contigs = $pfam_to_status_contigs_ref->{$pfam_id}{"depleted"} || {};
+
+        # Count of enriched and depleted contigs for this Pfam domain
+        my $enriched_count = keys %$enriched_contigs;
+        my $depleted_count = keys %$depleted_contigs;
+
+        $enriched_count++; # pseudocounts
+        $depleted_count++;
+        my $total_contigs_with_pfam = $enriched_count + $depleted_count;
+
+        # Local ratio: proportion of enriched contigs for this Pfam
+        my $local_enrichment_ratio = $enriched_count / $total_contigs_with_pfam;
+
+        # Binomial test: p-value for observing ≥ enriched_count enriched contigs
+        my $p_value = 1 - Math::CDF::pbinom($enriched_count - 1, $total_contigs_with_pfam, $global_enrichment_probability);
+        my $stats_string = join("_", $enriched_count, $total_contigs_with_pfam, sprintf("%.4f", $local_enrichment_ratio));
+        $pvalue_to_pfam_stats{$p_value}{$pfam_id} = {
+            stats => $stats_string,
+            global_enrichment_probability => sprintf("%.4f", $global_enrichment_probability)
+        };
     }
-    return \%result4;
+    return \%pvalue_to_pfam_stats;
 }
 
 sub parse_bed {
