@@ -36,11 +36,35 @@ sub parse_args {
         "selection-bam=s"=> \$config{selection_bam},
         "edgR=s"         => \$config{edgR}, 
         "help|h"         => \$config{help},
-    ) or die $error_sentence;
+    ) or usage();
 
-    die $error_sentence unless $config{fasta} && $config{enrichment} && $config{out};
+    usage() unless $config{fasta} && $config{enrichment} && $config{out};
 
     return \%config;
+}
+
+sub usage {
+    print <<EOF;
+Usage: perl $0 --fasta FASTA_FILE --enrichment BED_FILE --out OUTPUT_FILE --control-bam BAM --selection-bam BAM [options]
+
+Required:
+    --fasta FILE             Input FASTA file
+    --enrichment FILE        BED file with enrichment regions
+    --out FILE               Output file name
+    --control-bam FILE       BAM file for the control sample
+    --selection-bam FILE     BAM file for the selection sample
+
+Optional:
+    --edgR FILE              Output from edgeR differential analysis (optional)
+    --help, -h               Show this help message
+
+Example:
+    perl $0 --fasta contigs.fa --enrichment enriched_regions.bed \\
+        --out results.txt --control-bam ctrl.bam --selection-bam sel.bam \\
+        --edgR differential_results.txt
+
+EOF
+    exit(1);
 }
 
 sub parse_enrichment {

@@ -66,7 +66,6 @@ sub write_enrichment_output {
 }
 
 sub parse_args {
-    my $error_sentence = "USAGE : perl $0 --pfam pfam_tab --out output_file OPTIONAL : --cutoff 10 (default 3) --direction depleted (default enriched) --read_count_min 100 (total number of reads in control+enriched, default 0) --contig_min 500 (length of the contig in bp, default 0) --unwanted contif.bed (defaut NONE) --pfam_cutoff 0.0000001 (this is the pfam Evalue. Anything matching of below this cutoff is used, DEFAULT no cutoff) --pfam_number 10 (at least 10 instances of a particular pfam, DEFAULT=0)";
     my %config = (
         cutoff        => 3,
         direction     => "enriched",
@@ -89,10 +88,40 @@ sub parse_args {
         "pfam_cutoff=s"   => \$config{pfam_cutoff},
         "pfam_number=s"   => \$config{pfam_number},
         "help|h"          => \$config{help},
-    ) or die $error_sentence;
+    ) or die usage();
 
-    die $error_sentence unless $config{out} && $config{pfam};
+    die usage() unless $config{out} && $config{pfam};
+
     return \%config;
+}
+
+sub usage {
+    print <<EOF;
+Usage: perl $0 --pfam pfam_tab --out output_file [options]
+
+Required:
+    --pfam FILE              Path to Pfam-A.hmm file
+    --out FILE               Output file name
+
+Optional:
+    --cutoff FLOAT           Cutoff value for enrichment analysis (default: 3)
+    --direction STRING       Direction of interest: enriched or depleted (default: enriched)
+    --read_count_min INT     Minimum total number of reads in control+enriched (default: 0)
+    --contig_min INT         Minimum length of the contig in bp (default: 0)
+    --unwanted FILE          BED file of unwanted contigs (default: NONE)
+    --pfam_cutoff FLOAT      Pfam E-value cutoff for matches (default: no cutoff)
+                             e.g., use 1e-7 for stringent matches
+    --pfam_number INT        Minimum number of instances of a Pfam to consider (default: 0)
+    --enrichment_txt FILE    Path to enrichment file (optional)
+    --help, -h               Show this help message
+
+Example:
+    perl $0 --pfam pfam_results.txt --out filtered_output.txt --cutoff 10 --direction depleted \\
+        --read_count_min 100 --contig_min 500 --unwanted unwanted_contigs.bed \\
+        --pfam_cutoff 1e-7 --pfam_number 10
+
+EOF
+    exit(1);
 }
 
 sub get_cutoff_from_distribution {
