@@ -185,8 +185,8 @@ sub usage {
 Usage: $0 [options]
 
 Required:
-    --control, -c FILE         Path to control FASTQ files (e.g., PF4.1_val_1.fq.gz)
-    --selection, -s FILE       Path to selection FASTQ files (e.g., PF1.1_val_1.fq.gz)
+    --control_1, -c1 FILE     Path to control FASTQ files (e.g., PF4.1_val_1.fq.gz)
+    --selection_1, -s1 FILE   Path to selection FASTQ files (e.g., PF1.1_val_1.fq.gz)
     --outdir, -o DIR          Output directory
 
 Optional:
@@ -195,14 +195,17 @@ Optional:
     --annotation, -AN         Run annotation steps
     --mapping, -M             Run mapping steps
     --enrichment, -E          Run enrichment analysis steps
+    --control_2, -c2 FILE     Path to control FASTQ files (e.g., PF4.1_val_1.fq.gz)
+    --selection_2, -s2 FILE   Path to selection FASTQ files (e.g., PF1.1_val_1.fq.gz)
     --threads                 Number of threads to be ran on
     --memory                  Amount of memory to be allocated
     --cutoff -c FLOAT         Cutoff value for enrichment analysis (default: 3), if -1 then will be calculated from distribution
     --help, -h                Show this help message
 
 Example:
-    $0 --control PF4.1_val_1.fq.gz \\
-       --selection PF1.1_val_1.fq.gz \\
+    perl run_metaGPA.pl
+    $0 --c1 PF4.1_val_1.fq.gz \\
+       --s1 PF1.1_val_1.fq.gz \\
        --outdir results \\
        --assembly --mapping --enrichment
 EOF

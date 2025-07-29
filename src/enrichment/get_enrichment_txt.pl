@@ -5,39 +5,42 @@ use Getopt::Long qw(GetOptions);
 use File::Temp qw(tempfile);
 use Bio::SeqIO;
 
-#this programs cleans the assemblies
-
 exit main();
 
 sub main {
-    my ($fasta, $enrichment, $out, $control_bam, $selection_bam, $edgeR) = parse_args();
+    my $config = parse_args();
 
-    my $id2edgeR_pvalue = parse_edgR($edgeR) if $edgeR;
+    my $id2edgeR_pvalue = $config->{edgR} ? parse_edgR($config->{edgR}) : undef;
 
-    my %bed = parse_enrichment($enrichment, $control_bam, $selection_bam, $id2edgeR_pvalue);
+    my %bed = parse_enrichment(
+        $config->{enrichment},
+        $config->{control_bam},
+        $config->{selection_bam},
+        $id2edgeR_pvalue
+    );
 
-    write_enriched_fasta($fasta, \%bed, $out);
+    write_enriched_fasta($config->{fasta}, \%bed, $config->{out});
 
     return 0;
 }
 
 sub parse_args {
-    my $error_sentence = "USAGE : perl $0 --fasta fastafile --enrichment bedfile --out fileout --edgR edgeRfile\n";
-    # assembly file combined (control and entriched), bed file containing the enrichment value, output file, optional edgR file
-    my ($fasta, $enrichment, $out, $control_bam, $selection_bam, $edgeR);
+    my $error_sentence = "USAGE : perl $0 --fasta fastafile --enrichment bedfile --out fileout --control-bam bam --selection-bam bam [--edgR edgeRfile]\n";
+    my %config;
 
     GetOptions(
-        "fasta=s"      => \$fasta,
-        "enrichment=s" => \$enrichment,
-        "out=s"        => \$out,
-        "control-bam=s" => \$control_bam,
-        "selection-bam=s" => \$selection_bam,
-        "edgR=s"       => \$edgeR, 
+        "fasta=s"        => \$config{fasta},
+        "enrichment=s"   => \$config{enrichment},
+        "out=s"          => \$config{out},
+        "control-bam=s"  => \$config{control_bam},
+        "selection-bam=s"=> \$config{selection_bam},
+        "edgR=s"         => \$config{edgR}, 
+        "help|h"         => \$config{help},
     ) or die $error_sentence;
 
-    die $error_sentence unless $fasta && $enrichment && $out;
+    die $error_sentence unless $config{fasta} && $config{enrichment} && $config{out};
 
-    return ($fasta, $enrichment, $out, $control_bam, $selection_bam, $edgeR);
+    return \%config;
 }
 
 sub parse_enrichment {
@@ -66,7 +69,6 @@ sub parse_enrichment {
             my $logFC = $$id2edgeR_pvalue{$id}{"logFC"};
             my $Pvalue = $$id2edgeR_pvalue{$id}{"Pvalue"};
             push @info, $logFC, $Pvalue;
-
         }
         $bed{$id} = \@info;
     }
@@ -80,7 +82,11 @@ sub write_enriched_fasta {
 
     my $seq_in = Bio::SeqIO->new(-format => 'fasta', -file => $fasta);
 
+    # Print column headers
+    print STDERR "Writing output with headers: id, control_count, selected_count, rpkm_ratio, logFC, Pvalue\n";
     open(my $info_fh, ">", $out) or die "Can't write to $out: $!";
+
+    print $info_fh join("\t", "id", "control_count", "selected_count", "rpkm_ratio", "logFC", "Pvalue"), "\n";
 
     while (my $seq = $seq_in->next_seq()) {
         my $id = $seq->id;
@@ -121,9 +127,9 @@ sub parse_edgR {
     return \%result;
 }
 
+
 #"","logFC","logCPM","PValue","FDR"
 #"NODE_25476_length_852_selection",-7.26656621616605,0.310787993213469,3.99460840344187e-24,1.62286558841591e-18
 #"NODE_4102_length_1780_control",5.91969495037133,2.51778352883633,9.91339319074969e-24,1.82118737820817e-18
 #"NODE_9199_length_1336_control",7.26433015701448,0.51970903485849,2.20018006183038e-23,1.82118737820817e-18
 #"NODE_286_length_3863_control",8.15170978605567,0.450453759594057,2.24426221242949e-23,1.82118737820817e-18
-

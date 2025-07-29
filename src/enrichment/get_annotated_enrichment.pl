@@ -16,19 +16,28 @@ use utils qw(parse_pfam_file
 exit main();
 
 sub main {
-    my ($pfam, $enrichment_file_path, $out, $cutoff, $direction, $read_count_min, $contig_min, $unwanted, $pfam_cutoff, $TOTAL) = parse_args();
+    my $config = parse_args();
 
-    my $hash_contig = $unwanted ? parse_bed($unwanted) : undef;
+    my $hash_contig = $config->{unwanted} ? parse_bed($config->{unwanted}) : undef;
 
-    if ($cutoff == -1) {
-        $cutoff = get_cutoff_from_distribution($enrichment_file_path, 1);
+    if ($config->{cutoff} == -1) {
+        $config->{cutoff} = get_cutoff_from_distribution($config->{enrichment_txt}, 1);
     }
 
-    my ($result2, $result3, $pfam2desc) = parse_pfam_file($pfam, $enrichment_file_path, $hash_contig, $read_count_min, $contig_min, $pfam_cutoff, $cutoff, $direction);
+    my ($result2, $result3, $pfam2desc) = parse_pfam_file(
+        $config->{pfam},
+        $config->{enrichment_txt},
+        $hash_contig,
+        $config->{read_count_min},
+        $config->{contig_min},
+        $config->{pfam_cutoff},
+        $config->{cutoff},
+        $config->{direction}
+    );
     my $result4 = calculate_enrichment_stats($result2, $result3);
 
-    open(my $out_fh, ">", $out) or die "Can't open $out\n";
-    write_enrichment_output($result4, $pfam2desc, $TOTAL, $out_fh);
+    open(my $out_fh, ">", $config->{out}) or die "Can't open $config->{out}\n";
+    write_enrichment_output($result4, $pfam2desc, $config->{pfam_number}, $out_fh);
     close $out_fh;
 
     return 0;
@@ -37,7 +46,6 @@ sub main {
 sub write_enrichment_output {
     my ($pvalue_to_pfam_stats, $pfam_to_description, $min_total_count, $out_fh) = @_;
 
-    # Print header (optional, comment out if not needed)
     print $out_fh join("\t", "p_value", "pfam_id", "enriched", "total", 
         "local_ratio", "global_enrichment_prob", "description"), "\n";
     foreach my $p_value (sort { $a <=> $b } keys %$pvalue_to_pfam_stats) {
@@ -48,7 +56,6 @@ sub write_enrichment_output {
             my $global_enrichment_prob = $stats_ref->{global_enrichment_probability};
 
             my ($enriched_count, $total_count, $local_ratio) = split /_/, $stats_string;
-            # Apply filter: only write if total count > threshold
             if ($total_count > $min_total_count) {
                 my $description = $pfam_to_description->{$pfam_id} // "NA";
                 print $out_fh join("\t", $p_value, $pfam_id, $enriched_count,
@@ -58,34 +65,34 @@ sub write_enrichment_output {
     }
 }
 
-
 sub parse_args {
     my $error_sentence = "USAGE : perl $0 --pfam pfam_tab --out output_file OPTIONAL : --cutoff 10 (default 3) --direction depleted (default enriched) --read_count_min 100 (total number of reads in control+enriched, default 0) --contig_min 500 (length of the contig in bp, default 0) --unwanted contif.bed (defaut NONE) --pfam_cutoff 0.0000001 (this is the pfam Evalue. Anything matching of below this cutoff is used, DEFAULT no cutoff) --pfam_number 10 (at least 10 instances of a particular pfam, DEFAULT=0)";
-    my ($pfam, $enrichment_file_path, $out, $cutoff, $direction, $read_count_min, $contig_min, $unwanted, $pfam_cutoff, $TOTAL);
-    $cutoff = 3;
-    $direction = "enriched";
-    $read_count_min = 0;
-    $contig_min = 0;
-    $pfam_cutoff = 100000000000000;
-    #from : http://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam35.0/Pfam-A.hmm.gz
-    $pfam = "/mnt/home/ettwiller/laurence/database/pfam/Pfam-A.hmm";
-    $TOTAL = 0;
+    my %config = (
+        cutoff        => 3,
+        direction     => "enriched",
+        read_count_min=> 0,
+        contig_min    => 0,
+        pfam_cutoff   => 100000000000000,
+        pfam          => "/mnt/home/ettwiller/laurence/database/pfam/Pfam-A.hmm",
+        pfam_number   => 0,
+    );
 
     GetOptions(
-        "pfam=s"          => \$pfam, # hmmer format file (tab delimited).
-        "enrichment_txt=s"=> \$enrichment_file_path, # enrichment file path.
-        "out=s"           => \$out, # output file.
-        "cutoff=s"        => \$cutoff, # cutoff for the enrichment
-        "direction=s"     => \$direction, # depeted or enriched
-        "read_count_min=s"=> \$read_count_min, # minimum (total) read number
-        "contig_min=s"    => \$contig_min, # minimum size contig (bp)
-        "unwanted=s"      => \$unwanted,
-        "pfam_cutoff=s"   => \$pfam_cutoff,
-        "pfam_number=s"   => \$TOTAL
+        "pfam=s"          => \$config{pfam},
+        "enrichment_txt=s"=> \$config{enrichment_txt},
+        "out=s"           => \$config{out},
+        "cutoff=s"        => \$config{cutoff},
+        "direction=s"     => \$config{direction},
+        "read_count_min=s"=> \$config{read_count_min},
+        "contig_min=s"    => \$config{contig_min},
+        "unwanted=s"      => \$config{unwanted},
+        "pfam_cutoff=s"   => \$config{pfam_cutoff},
+        "pfam_number=s"   => \$config{pfam_number},
+        "help|h"          => \$config{help},
     ) or die $error_sentence;
 
-    die $error_sentence unless $out && $pfam;
-    return ($pfam, $enrichment_file_path, $out, $cutoff, $direction, $read_count_min, $contig_min, $unwanted, $pfam_cutoff, $TOTAL);
+    die $error_sentence unless $config{out} && $config{pfam};
+    return \%config;
 }
 
 sub get_cutoff_from_distribution {
