@@ -93,7 +93,7 @@ sub write_commands {
     my $hmmer4 = $config->{dirs}{output}."/annotation/".$prefix."control_and_selected_hmmer_format_TIGRFAM.tab";
     my $pfam = $config->{dirs}{enrichment}."/".$prefix."control_and_selected_hmmer_format_PFAM.enriched";
     my $tigrfam = $config->{dirs}{enrichment}."/".$prefix."control_and_selected_hmmer_format_TIGRFAM.enriched";
-    my $enrichment_info = $config->{dirs}{enrichment}."/".$prefix."enrichment_info.txt";
+    my $enrichment_info = $config->{dirs}{enrichment}."/".$prefix."_enrichment_info.txt";
 
     push @commands, "awk 'BEGIN{ OFS=\"\\t\"; }{ print \$1, 1, \$2, FILENAME, 100, \"+\"; }' ".
         $fai." | bedtools multicov -bed - -bams ".
