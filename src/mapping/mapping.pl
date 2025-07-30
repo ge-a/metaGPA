@@ -154,7 +154,7 @@ sub write_commands {
         " M=".$control_stats;
     push @commands, "java -jar ".$config->{programs}{picard}.
         " MarkDuplicates REMOVE_DUPLICATES=true".
-        " I=".$control_bam.
+        " I=".$selection_bam.
         " O=".$selection_dedup.
         " M=".$selection_stats;
     push @commands, "samtools index ".$control_dedup;
