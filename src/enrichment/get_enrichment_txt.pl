@@ -25,7 +25,6 @@ sub main {
 }
 
 sub parse_args {
-    my $error_sentence = "USAGE : perl $0 --fasta fastafile --enrichment bedfile --out fileout --control-bam bam --selection-bam bam [--edgR edgeRfile]\n";
     my %config;
 
     GetOptions(
@@ -107,10 +106,10 @@ sub write_enriched_fasta {
     my $seq_in = Bio::SeqIO->new(-format => 'fasta', -file => $fasta);
 
     # Print column headers
-    print STDERR "Writing output with headers: id, control_count, selected_count, rpkm_ratio, logFC, Pvalue\n";
+    print STDERR "Writing output with headers: id, control_count, selected_count, rpkm_ratio\n";
     open(my $info_fh, ">", $out) or die "Can't write to $out: $!";
 
-    print $info_fh join("\t", "id", "control_count", "selected_count", "rpkm_ratio", "logFC", "Pvalue"), "\n";
+    print $info_fh join("\t", "id", "control_count", "selected_count", "rpkm_ratio"), "\n";
 
     while (my $seq = $seq_in->next_seq()) {
         my $id = $seq->id;
