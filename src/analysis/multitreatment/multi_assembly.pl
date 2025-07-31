@@ -83,7 +83,7 @@ sub parse_arguments {
         },
         programs => {
             assembly => "metaspades.py",
-            clean_assembly => File::Spec->catfile($Bin, "assembly", "clean_assembly.pl"),
+            clean_assembly => File::Spec->catfile($Bin, "..", "..", "assembly", "clean_assembly.pl"),
         }
     );
     GetOptions(

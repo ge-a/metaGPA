@@ -62,7 +62,7 @@ sub parse_arguments {
             selection_reads_2 => "use_regex"
         },
         programs => {
-            mapping => File::Spec->catfile($Bin, "mapping", "run_dna_map.pl"),
+            mapping => File::Spec->catfile($Bin, "..", "..", "mapping", "run_dna_map.pl"),
             picard => "/mnt/home/ettwiller/anaconda3/share/picard-2.27.1-0/picard.jar",
             mapping_func => "bwa"
         }
