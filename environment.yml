@@ -1,4 +1,4 @@
-name: MetaGPA2
+name: MetaGPA
 channels:
   - bioconda
   - conda-forge
