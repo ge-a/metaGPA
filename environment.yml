@@ -1,4 +1,4 @@
-name: MetaGPA
+name: MetaGPA2
 channels:
   - bioconda
   - conda-forge
@@ -16,6 +16,7 @@ dependencies:
   - quast=5.3.0
   - perl-statistics-descriptive
   - seqtk=1.4
+  - python=3.8.12
   - biopython=1.83
   - matplotlib=3.3.2
   - networkx=3.1
