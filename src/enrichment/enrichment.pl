@@ -87,7 +87,7 @@ sub write_commands {
     my $control_bam = $config->{dirs}{output}."/mapping/".$config->{input}{control}."mapped_to_".$prefix.".bam";
     my $selection_bam = $config->{dirs}{output}."/mapping/".$config->{input}{selection}."mapped_to_".$prefix.".bam";
     my $control_dedup = $config->{dirs}{output}."/mapping/".$config->{input}{control}."mapped_to_".$prefix."duplicated_remove.bam";
-    my $selection_dedup = $config->{dirs}{output}."/mapping/".$config->{input}{control}."mapped_to_".$prefix."duplicated_remove.bam";
+    my $selection_dedup = $config->{dirs}{output}."/mapping/".$config->{input}{selection}."mapped_to_".$prefix."duplicated_remove.bam";
     my $coverage_bed = $config->{dirs}{output}."/mapping/".$prefix."control_versus_selection_coverage.bed";
     my $hmmer2 = $config->{dirs}{output}."/annotation/".$prefix."control_and_selected_hmmer_format.tab";
     my $hmmer4 = $config->{dirs}{output}."/annotation/".$prefix."control_and_selected_hmmer_format_TIGRFAM.tab";
