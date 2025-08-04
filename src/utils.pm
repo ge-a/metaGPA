@@ -202,7 +202,8 @@ sub get_control_enriched_reads {
     my ($contig, $enrichment_info) = @_;
     my $control_reads   = $enrichment_info->{$contig}[0];
     my $enriched_reads  = $enrichment_info->{$contig}[1];
-    return ($control_reads, $enriched_reads);
+    my $ratio           = $enrichment_info->{$contig}[2];
+    return ($control_reads, $enriched_reads, $ratio);
 }
 
 sub parse_pfam_file {
@@ -236,9 +237,8 @@ sub parse_pfam_file {
             print STDERR "$full_contig_name is removed (excluded)\n";
             next;
         }
-        my ($control_reads, $selection_reads) = get_control_enriched_reads($normalized_contig_name, $enrichment_data);
+        my ($control_reads, $selection_reads, $enrichment_ratio) = get_control_enriched_reads($normalized_contig_name, $enrichment_data);
         my $total_read_count = $control_reads + $selection_reads;
-        my $enrichment_ratio = $enrichment_data->{$normalized_contig_name}[2];
         my $contig_length;
         if ($normalized_contig_name =~ /length_(\d+)_/) {
             $contig_length = $1;
@@ -325,7 +325,6 @@ sub parse_bed {
 sub parse_enrichment_info {
     my ($filename) = @_;
     my %enrichment_hash;
-
     open(my $fh, "<", $filename) or die "Can't open $filename: $!";
     while (my $line = <$fh>) {
         chomp $line;
