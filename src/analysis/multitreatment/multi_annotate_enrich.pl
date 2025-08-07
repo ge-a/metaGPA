@@ -23,16 +23,55 @@ sub main {
     if ($cutoff == -1) {
         $cutoff = get_cutoff_from_distribution($enrichment_file_path, 1);
     }
+    for (my $i = 1; $i <= $num_selection; $i++) {
+        my $enrich_file_i = parse_multi_enrich_txt($enrichment_file_path, $i);
+        my ($result2, $result3, $pfam2desc) = parse_pfam_file($pfam, $enrich_file_i, $hash_contig, $read_count_min, $contig_min, $pfam_cutoff, $cutoff, $direction, 1);
+        my $result4 = calculate_enrichment_stats($result2, $result3);
 
-    my ($result2, $result3, $pfam2desc) = parse_pfam_file($pfam, $enrichment_file_path, $hash_contig, $read_count_min, $contig_min, $pfam_cutoff, $cutoff, $direction);
-    my $result4 = calculate_enrichment_stats($result2, $result3);
+        my $out_i = $out;
+        $out_i =~ s/(\.\w+)?$/_$i$1/;
 
-    open(my $out_fh, ">", $out) or die "Can't open $out\n";
-    write_enrichment_output($result4, $pfam2desc, $TOTAL, $out_fh);
-    close $out_fh;
-
+        open(my $out_fh, ">", $out_i) or die "Can't open $out_i\n";
+        write_enrichment_output($result4, $pfam2desc, $TOTAL, $out_fh);
+        close $out_fh;
+    }
     return 0;
 }
+
+sub parse_multi_enrich_txt {
+    my ($enrichment_file_path, $selection_num) = @_;
+    open(my $fh, '<', $enrichment_file_path) or die "Cannot open file: $enrichment_file_path\n";
+
+    my @result;
+    my $header = <$fh>;  # skip header line
+
+    while (my $line = <$fh>) {
+        chomp $line;
+        my @fields = split /\t/, $line;
+
+        # Extract fields
+        my $id = $fields[0];
+        my $control_count = $fields[1];
+
+        # Determine column indices for the desired selection number
+        my $sel_count_idx = ($selection_num * 2);
+        my $sel_ratio_idx = $sel_count_idx + 1;
+
+        my $selection_count = $fields[$sel_count_idx];
+        my $selection_ratio = $fields[$sel_ratio_idx];
+
+        # Store as a hash (or any structure you want)
+        push @result, {
+            id => $id,
+            control_count => $control_count,
+            selection_count => $selection_count,
+            selection_ratio => $selection_ratio,
+        };
+    }
+    close $fh;
+    return \@result;  # return a reference to the array
+}
+
 sub write_enrichment_output {
     my ($pvalue_to_pfam_stats, $pfam_to_description, $min_total_count, $out_fh) = @_;
 

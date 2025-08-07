@@ -215,11 +215,14 @@ sub parse_pfam_file {
         $min_contig_length,      # Minimum contig length threshold
         $pfam_evalue_cutoff,     # Maximum acceptable Pfam e-value
         $enrichment_cutoff,      # Enrichment ratio cutoff
-        $direction               # 'enriched' or 'depleted' based on how ratio should be interpreted
+        $direction,               # 'enriched' or 'depleted' based on how ratio should be interpreted
+        $multiselection,         # whether or not we are running a multiselection
     ) = @_;
-
+    $multiselection //= 0;
     my (%pfam_to_status_contigs, %status_to_contigs, %pfam_to_description);
-    my $enrichment_data = parse_enrichment_info($enrichment_file_path);
+    my $enrichment_data = $multiselection
+        ? parse_multi_enrichment_info($enrichment_file_path)
+        : parse_enrichment_info($enrichment_file_path);
     open(my $pfam_fh, "<", $pfam_file_path) or die "Can't open Pfam file: $pfam_file_path\n";
 
     while (my $line = <$pfam_fh>) {
@@ -334,5 +337,21 @@ sub parse_enrichment_info {
         $enrichment_hash{$id} = \@values;
     }
     close $fh;
+    return \%enrichment_hash;
+}
+
+sub parse_multi_enrichment_info {
+    my ($enrichment_arrayref) = @_;
+    my %enrichment_hash;
+
+    foreach my $entry (@$enrichment_arrayref) {
+        my $id = $entry->{id};
+        my $control_count = $entry->{control_count};
+        my $selection_count = $entry->{selection_count};
+        my $selection_ratio = $entry->{selection_ratio};
+
+        $enrichment_hash{$id} = [$control_count, $selection_count, $selection_ratio];
+    }
+
     return \%enrichment_hash;
 }
