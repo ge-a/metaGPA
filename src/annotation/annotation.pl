@@ -15,11 +15,30 @@ exit main();
 sub main {
     my $config = parse_arguments();
     my @commands = write_commands($config);
-    
-    foreach my $command (@commands) {
-        print "Running command: $command\n";
-        system($command) == 0 or die "Failed to execute command: $command";
+    my @pids;
+
+    for (my $i = 0; $i < @commands; $i++) {
+        my $command = $commands[$i];
+
+        if ($i == 1 || $i == 2) {
+            my $pid = fork();
+            if (!defined $pid) {
+                die "Failed to fork for command $i: $!";
+            } elsif ($pid == 0) {
+                print "Running command (child): $command\n";
+                exec($command) or die "Failed to exec command: $command";
+            } else {
+                push @pids, $pid;
+            }
+        } else {
+            print "Running command: $command\n";
+            system($command) == 0 or die "Failed to execute command: $command";
+        }
     }
+    foreach my $pid (@pids) {
+        waitpid($pid, 0);
+    }
+
     return 0;
 }
 
