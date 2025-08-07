@@ -38,7 +38,6 @@ sub main {
     foreach my $pid (@pids) {
         waitpid($pid, 0);
     }
-
     return 0;
 }
 
