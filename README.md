@@ -25,19 +25,23 @@ We also provide additional scripts for further analyses of any chosen interested
 For more details, please refer to our paper: [A Genome-Phenome Association study in native microbiomes identifies a mechanism for cytosine modification in DNA and RNA.](https://elifesciences.org/articles/70021)
 
 ## Installation
+Clone the repository using one of the following methods:
 
-Clone the package:
-
+### Option 1: HTTPS 
 ```bash
 git clone https://github.com/ge-a/metaGPA.git
 ```
 
-### Using Conda/Mamba
+### Option 1: SSH
+
+```bash
+git clone git@github.com:ge-a/metaGPA.git
+```
+
+### Using Conda
 1. **Create the environment:**
     ```bash
     conda env create -f environment.yml
-    # or, with mamba (faster):
-    mamba env create -f environment.yml
     ```
 
 2. **Activate the environment:**
@@ -70,11 +74,11 @@ A Dockerfile is provided for containerized installation and reproducibility.
 Here is a minimal example to get started with MetaGPA after installation:
 
 1. **Prepare your input files:**  
-   Ensure you have your control and selection FASTQ files and a configuration file (if needed).
+   Ensure you have your control and selection FASTQ files.
 
 2. **Run the pipeline:**  
    ```bash
-   perl src/run_metaGPA.pl \
+   perl run_metaGPA.pl \
      --control_1 CONTROL_SAMPLE \
      --selection_1 SELECTION_SAMPLE \
      --output-dir results
@@ -90,13 +94,39 @@ Here is a minimal example to get started with MetaGPA after installation:
 
 You can see all available options by running:
 ```bash
-perl src/run_metaGPA.pl --help
+perl run_metaGPA.pl --help
 ```
 
-Common options include:
-- `--control_1, -c1` : Name or path of the control 1 sample FASTQ file(s)
-- `--selection_1, -s1` : Name or path of the selection 1 sample FASTQ file(s)
-- `--output-dir, -o` : Directory to store results
+Options include:
+- `--control_1, -c1` :  \[Required\] Name or path of the control 1 sample FASTQ file
+- `--selection_1, -s1` : \[Required\] Name or path of the selection 1 sample FASTQ file
+- `--output-dir, -o` : \[Required\] Directory to store results
+- `--control_2, -c2` : (Optional) Name or path of the control 2 sample FASTQ file
+- `--selection_2, -s2` : (Optional) Name or path of the selection 2 sample FASTQ file
+- `--assembly, -A` : (Optional) Run assembly steps
+- `--annotation, -AN` : (Optional) Run annotation steps
+- `--mapping, -M` : (Optional) Run mapping steps
+- `--enrichment, -E` : (Optional) Run enrichment analysis steps
+- `--cutoff, -c` : (Optional) Enrichment cutoff value
+- `--trim, -t` : (Optional) Do we want to trim files before running pipeline
+- `--threads` :  (Optional) Number of threads to run assembly with
+- `--memory` :  (Optional) Memory allocation for assembly
+- `--help` : Show help message
+
+Note that if none of assembly, annotation, mapping, or enrichment are specified, then all steps will be ran. If a downstream step is ran without necessary preceding steps the program will assume the previous steps were ran in the previously output results and look for necessary data files accordingly.
+
+Also note that while you may specify both control 1 and 2, as well as selection 1 and 2 when running the program, you may input only files for control 1 and selection 1 and the program will generate the file path for control 2 and selection 2 assuming they have the same base file name with a 2 instead of a 1 at the end.
+
+### MultiSelection Usage
+
+```bash
+perl run_multitreatment.pl --help
+```
+
+Options include:
+- `--control_1, -c1` : \[Required\] Name or path of the control 1 sample FASTQ file
+- `--selection_1, -s1` : \[Required\] Name or path of the selection 1 sample FASTQ file(s)
+- `--output-dir, -o` : \[Required\] Directory to store results
 - `--control_2, -c2` : (Optional) Name or path of the control 2 sample FASTQ file(s)
 - `--selection_2, -s2` : (Optional) Name or path of the selection 2 sample FASTQ file(s)
 - `--assembly, -A` : (Optional) Run assembly steps
@@ -105,16 +135,43 @@ Common options include:
 - `--enrichment, -E` : (Optional) Run enrichment analysis steps
 - `--cutoff, -c` : (Optional) Enrichment cutoff value
 - `--trim, -t` : (Optional) Do we want to trim files before running pipeline
+- `--threads` :  (Optional) Number of threads to run assembly with
+- `--memory` :  (Optional) Memory allocation for assembly
 - `--help` : Show help message
 
-Note that if none of assembly, annotation, mapping, or enrichment are specified, then all steps will be ran. If a downstream step is ran without necessary preceding steps the program will assume the previous steps were ran in the previously output results and look for necessary data files accordingly.
+Note that to run multiple selections for the control you can simply write the s1 flag again and pass in the next selection sample you would like to run.
 
-Also note that while you may specify both control 1 and 2, as well as selection 1 and 2 when running the program, you may input only files for control 1 and selection 1 and the program will generate the file path for control 2 and selection 2 assuming they have the same base file name with a 2 instead of a 1 at the end.
+### Postpipeline Analysis Function Usage
+
+```bash
+perl run_analysis.pl ---command analysis_function \[options for analysis script\]
+```
+If you would like to see the help output for the the analysis function you can run this command
+```bash
+perl run_analysis.pl ---command analysis_function --subhelp
+```
+You can see all run options with command:
+```bash
+perl run_analysis.pl --help
+```
+
+Options include:
+- `--control_1, -c1` : \[Required\]  Analysis type (e.g., create_tree_file, get_gff)
+- `--help` :Show help message for your specified command
+- `--help` : Show help message
+
+Note that to run multiple selections for the control you can simply write the s1 flag again and pass in the next selection sample you would like to run.
+
+Available commands:
+    create_tree_file
+    get_enriched_fasta_orf
+    get_flanking_for_contig_vis
+    get_gff
+    parse_tree
+    residue_analysis
+
 
 ---
-### Example Workflow
-Step-by-step example of a typical analysis.
-
 ## Input/Output
 Description of required input files and generated output files.
 
