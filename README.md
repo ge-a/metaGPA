@@ -173,19 +173,11 @@ Available commands:
 
 ---
 ## Input/Output
-Description of required input files and generated output files.
-
-## Pipeline Structure
-Overview of the main scripts and their roles.
-
-## Configuration
-How to configure the pipeline for your data.
-
-Input Files
+### Input Files
 
 FQ or GZ fasta files or compressed fasta files
 
-Output Files
+### Output Files
 
 Assembly
 - Combined Control and Selected assembly fasta file
@@ -199,6 +191,13 @@ Enrichmnet
 - Enriched reads in Control and Selected groups txt file
 - Enrichment Annotated PFAM file
 - Enrichment Annotated TIGRFAM file
+
+## Pipeline Structure
+
+### Assembly
+### Mapping
+### Annotation
+### Enrichment
 
 ## Dependencies
 Please see environment.yml file for a list of required dependencies and versions. These dependencies can be installed directly with command: 
