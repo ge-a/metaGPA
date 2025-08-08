@@ -181,6 +181,25 @@ Overview of the main scripts and their roles.
 ## Configuration
 How to configure the pipeline for your data.
 
+Input Files
+
+FQ or GZ fasta files or compressed fasta files
+
+Output Files
+
+Assembly
+- Combined Control and Selected assembly fasta file
+- Combined Control and Selected faa file
+Annotation
+- TIGRFAM Hit tab file
+- PFAM Hit tab file
+Mapping
+- Control and Selected Reads bed file
+Enrichmnet
+- Enriched reads in Control and Selected groups txt file
+- Enrichment Annotated PFAM file
+- Enrichment Annotated TIGRFAM file
+
 ## Dependencies
 Please see environment.yml file for a list of required dependencies and versions. These dependencies can be installed directly with command: 
 `conda env create -f environment.yml`
