@@ -157,18 +157,18 @@ perl run_analysis.pl --help
 
 Options include:
 - `--control_1, -c1` : \[Required\]  Analysis type (e.g., create_tree_file, get_gff)
-- `--help` :Show help message for your specified command
+- `--subhelp` :Show help message for your specified command
 - `--help` : Show help message
 
 Note that to run multiple selections for the control you can simply write the s1 flag again and pass in the next selection sample you would like to run.
 
 Available commands:
-    create_tree_file
-    get_enriched_fasta_orf
-    get_flanking_for_contig_vis
-    get_gff
-    parse_tree
-    residue_analysis
+- `create_tree_file`
+- `get_enriched_fasta_orf`
+- `get_flanking_for_contig_vis`
+- `get_gff`
+- `parse_tree`
+- `residue_analysis`
 
 
 ---
