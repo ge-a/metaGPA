@@ -179,15 +179,15 @@ FQ or GZ fasta files or compressed fasta files
 
 ### Output Files
 
-Assembly
+#### Assembly
 - Combined Control and Selected assembly fasta file
 - Combined Control and Selected faa file
-Annotation
+#### Annotation
 - TIGRFAM Hit tab file
 - PFAM Hit tab file
-Mapping
+#### Mapping
 - Control and Selected Reads bed file
-Enrichmnet
+#### Enrichmnet
 - Enriched reads in Control and Selected groups txt file
 - Enrichment Annotated PFAM file
 - Enrichment Annotated TIGRFAM file
