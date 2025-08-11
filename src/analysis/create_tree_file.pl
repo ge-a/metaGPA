@@ -4,6 +4,10 @@ use Cwd;
 use FindBin qw($Bin);
 use File::Spec;
 use Bio::SeqIO;
+use Parallel::ForkManager;
+use File::Path qw(make_path);
+use File::Basename;
+use Time::HiRes qw(usleep);
 use Getopt::Long qw(GetOptions);
 use lib "$Bin/..";
 use utils qw(parse_enrichment_info
@@ -14,47 +18,24 @@ exit main();
 
 sub main {
     my $config = parse_args();
-
-    my $DIR = getcwd;
-    my $domain_dir = "domain_alignments";
-    if ( ! -d $domain_dir ) { system("mkdir $domain_dir"); }
-
-	my %domain_to_output;
-    # Parse pfam file and enrichment info
     my $pfam_list = parse_pfam(
         $config->{pfam_hit},
         $config->{enrichment_txt},
         $config->{read_count_min},
         $config->{contig_min}
     );
-    
-    foreach my $domain (keys %$pfam_list) {
-        my $instances = $pfam_list->{$domain}{instance};
-        my $pfamname  = $pfam_list->{$domain}{name};
-        my $tree_file = run_ks_test_tree($config, $domain);
-        if ($instances > 0 && defined $tree_file && -e $tree_file) {
-            my $generic = $domain . "_" . $pfamname;
-			my $command1 = "python ".$config->{parse_tree}." ".$tree_file;
-			my $output = `$command1`;
-			if ($? != 0) {
-				warn "Command failed: $command1\n";
-				next;
-			}
-			$domain_to_output{$domain} = {
-                pfamname => $pfamname,
-                output   => $output
-            };
-        }
-    }
-	open my $fh, '>', 'PF4_tree_eval.txt' or die "Could not open file: $!";
-    foreach my $domain (sort keys %domain_to_output) {
-        my $pfamname = $domain_to_output{$domain}{pfamname};
-        my $output   = $domain_to_output{$domain}{output};
 
-        print $fh "Domain: $domain\n";
-        print $fh "Pfam Name: $pfamname\n";
-        print $fh "Output:\n$output\n";
-        print $fh "-" x 40 . "\n";
+    my $checkpoint_file = 'completed_domains.txt';
+    my %completed = load_checkpoint($checkpoint_file);
+
+    if ($config->{mode} eq 'fork') {
+        run_fork_mode($config, $pfam_list, \%completed, $checkpoint_file);
+    } elsif ($config->{mode} eq 'qsub') {
+        run_qsub_mode($config, $pfam_list, \%completed);
+    } elsif ($config->{mode} eq 'single') {
+        run_single_mode($config, $pfam_list);
+    } else {
+        die "Invalid mode: $config->{mode}";
     }
     return 0;
 }
@@ -90,20 +71,25 @@ sub parse_args {
         read_count_min => 100,
         contig_min     => 100,
         cutoff         => 10,
-		parse_tree     => "$Bin/parse_tree.py",
-        file_prefix    => ""
+        mode           => "fork",
+        parse_tree     => "$Bin/parse_tree.py",
+        file_prefix    => "",
+        domain         => undef,   # <--- add this
     );
+
     GetOptions(
-        "fasta=s"         => \$config{fasta},
-        "pfam_hit=s"      => \$config{pfam_hit},
-        "enrichment_txt=s"=> \$config{enrichment_txt},
-        "parse_tree=s"    => \$config{parse_tree},
-        "read_count_min=i"=> \$config{read_count_min},
-        "contig_min=i"    => \$config{contig_min},
-		"out=s"			  => \$config{out},
-        "file_prefix=s"   => \$config{file_prefix},
-	    "cutoff=f"        => \$config{cutoff},
-        "help|h"          => \$config{help},
+        "fasta=s"          => \$config{fasta},
+        "pfam_hit=s"       => \$config{pfam_hit},
+        "enrichment_txt=s" => \$config{enrichment_txt},
+        "parse_tree=s"     => \$config{parse_tree},
+        "mode=s"           => \$config{mode},
+        "read_count_min=i" => \$config{read_count_min},
+        "contig_min=i"     => \$config{contig_min},
+        "out=s"            => \$config{out},
+        "file_prefix=s"    => \$config{file_prefix},
+        "cutoff=f"         => \$config{cutoff},
+        "domain=s"         => \$config{domain},   # <--- add this
+        "help|h"           => \$config{help},
     ) or usage();
 
     usage() if $config{help} || !$config{fasta} || !$config{pfam_hit} || !$config{enrichment_txt} || !$config{out};
@@ -216,4 +202,165 @@ sub run_ks_test_tree {
     system($cmd_tree);
 
     return $out_tree;
+}
+
+sub load_checkpoint {
+    my ($file) = @_;
+    my %completed;
+    if (-e $file) {
+        open my $fh, '<', $file;
+        while (<$fh>) {
+            chomp;
+            $completed{$_} = 1;
+        }
+        close $fh;
+    }
+    return %completed;
+}
+
+sub run_fork_mode {
+    my ($config, $pfam_list, $completed, $checkpoint_file) = @_;
+
+    my $max_procs = 4;
+    my %domain_to_output;
+    open my $chk_out, '>>', $checkpoint_file or die "Can't write $checkpoint_file: $!";
+    my $pm = Parallel::ForkManager->new($max_procs);
+
+    $pm->run_on_finish(
+        sub {
+            my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $data) = @_;
+            return unless defined $data;
+
+            # Merge returned hashref from child into parent hash
+            my ($domain, $pfamname, $output) = @$data;
+            $domain_to_output{$domain} = {
+                pfamname => $pfamname,
+                output   => $output
+            };
+        }
+    );
+    foreach my $domain (keys %$pfam_list) {
+        next if $completed->{$domain};
+        $pm->start and next;
+        eval {
+            local $SIG{ALRM} = sub { die "timeout\n" };
+            alarm(600);  # 10 minute timeout
+
+            my $instances = $pfam_list->{$domain}{instance};
+            my $pfamname  = $pfam_list->{$domain}{name};
+            my $tree_file = run_ks_test_tree($config, $domain);
+            my $result;
+            if ($instances > 20 && defined $tree_file && -e $tree_file) {
+                my $command1 = "python $config->{parse_tree} $tree_file";
+                my $output = `$command1`;
+                if ($? == 0) {
+                    print $chk_out "$domain\n";
+                    $result = [$domain, $pfamname, $output];
+                    $pm->finish(0, $result);
+                } else {
+                    warn "Command failed: $command1\n";
+                    $pm->finish(0);
+                }
+            }
+            alarm 0;
+            exit;
+        };
+        warn "Domain $domain failed or timed out: $@" if $@;
+        $pm->finish(0);
+    }
+
+    $pm->wait_all_children;
+    close $chk_out;
+    write_tree_summary('PF4_tree_eval.txt', \%domain_to_output);
+}
+
+sub run_qsub_mode {
+    my ($config, $pfam_list, $completed) = @_;
+
+    my $list_file = "pfam_domains.txt";
+    open my $fh, '>', $list_file or die "Can't write $list_file: $!";
+    my @domains;
+
+    foreach my $domain (sort keys %$pfam_list) {
+        next if $completed->{$domain};
+        push @domains, $domain;
+        print $fh "$domain\n";
+    }
+    close $fh;
+
+    my $total = scalar @domains;
+    my $wrapper_script = "run_tree_array.sh";
+
+    open my $wrap, '>', $wrapper_script or die "Can't write $wrapper_script: $!";
+    print $wrap generate_qsub_script($config, $total);
+    close $wrap;
+
+    print "\nJob array script written to $wrapper_script\n";
+    print "Submit with: qsub $wrapper_script\n";
+}
+
+sub run_single_mode {
+    my ($config, $pfam_list) = @_;
+    my $domain = $config->{domain};
+    die "Must provide --domain in single mode\n" unless defined $domain;
+    die "Domain $domain not found or filtered out.\n" unless exists $pfam_list->{$domain};
+
+    my $instances = $pfam_list->{$domain}{instance};
+    my $pfamname  = $pfam_list->{$domain}{name};
+    my $tree_file = run_ks_test_tree($config, $domain);
+
+    if ($instances > 20 && defined $tree_file && -e $tree_file) {
+        my $output = `python $config->{parse_tree} $tree_file`;
+        if ($? == 0) {
+            write_tree_summary('PF4_tree_eval.txt', {
+                $domain => {
+                    pfamname => $pfamname,
+                    output   => $output
+                }
+            });
+        } else {
+            warn "Failed to parse tree for $domain\n";
+        }
+    } else {
+        warn "No valid tree produced for $domain\n";
+    }
+}
+
+sub generate_qsub_script {
+    my ($config, $total) = @_;
+
+    return qq{
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -S /bin/bash
+#$ -pe smp 24
+#$ -l ram=250G
+
+DOMAIN=\$(sed -n "\${SGE_TASK_ID}p" pfam_domains.txt)
+
+perl run_tree_builder.pl \\
+    --domain \$DOMAIN \\
+    --mode single \\
+    --fasta "$config->{fasta}" \\
+    --pfam_hit "$config->{pfam_hit}" \\
+    --enrichment_txt "$config->{enrichment_txt}" \\
+    --out "$config->{out}" \\
+    --parse_tree "$config->{parse_tree}" \\
+    --cutoff "$config->{cutoff}" \\
+    --read_count_min "$config->{read_count_min}" \\
+    --contig_min "$config->{contig_min}"
+};
+}
+
+sub write_tree_summary {
+    my ($file, $data) = @_;
+    open my $fh, '>', $file or die "Could not open $file: $!";
+    foreach my $domain (sort keys %$data) {
+        my $pfamname = $data->{$domain}{pfamname};
+        my $output   = $data->{$domain}{output};
+        print $fh "Domain: $domain\nPfam Name: $pfamname\nOutput:\n$output\n";
+        print $fh "-" x 40 . "\n";
+    }
+    close $fh;
 }
