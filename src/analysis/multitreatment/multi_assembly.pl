@@ -196,7 +196,7 @@ sub write_commands {
     my @selection_fasta_files = map { $selection_prefixes[$_].".fasta" } (0 .. $num_selections-1);
     my $selection_concat = join(" ", @selection_fasta_files);
 
-    push @commands, "cat $selection_concat $control_prefix.fasta > $assembly_final_info";
+    push @commands, "cat $selection_concat $control_prefix.fasta > $assembly_final_info"; # when marking select vs control make sure it says which file it comes from
     push @commands, "cd-hit-est -i ".$assembly_final_info.
         " -o ".$generic_prefix."control_and_selected.nd.fasta".
         " -c 0.95 -n 10 -M 0 -T ".$config->{params}{threads}.
@@ -226,11 +226,13 @@ sub assemble_reads {
             " --only-assembler".
             " --memory ".$memory.
             " --threads ".$threads;
-        push @commands, "perl ".$clean_assembly.
-            " -file ".$sub_prefix."_assembly/contigs.fasta".
-            " -tag $tag".
-            " --out ".$sub_prefix.".fasta".
-            " --min_length ".$min_length;
+        my $tag_value = ($tag eq "selection") ? "$tag" . ($i + 1) : $tag;
+        push @commands, "perl $clean_assembly" .
+            " -file ${sub_prefix}_assembly/contigs.fasta" .
+            " -tag $tag_value" .
+            " --out ${sub_prefix}.fasta" .
+            " --min_length $min_length";
+
     }
     return @commands;
 }
