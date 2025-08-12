@@ -94,8 +94,7 @@ sub make_unique_path {
 sub process_fastq {
     my ($fq_1, $fq_2, $generic, $outdir, $trim) = @_;
 
-    my $data_dir = "data";
-    system("mkdir -p $data_dir") unless -d $data_dir;
+    my $data_dir = File::Basename::dirname($fq_1);
 
     # compress fq to fq.gz if it is not already compressed
     if ($fq_1 !~ /\.gz$/) {
