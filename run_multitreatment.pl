@@ -191,8 +191,8 @@ sub usage {
 Usage: $0 [options]
 
 Required:
-    --control, -c FILE         Path to control FASTQ files (e.g., PF4.1_val_1.fq.gz)
-    --selection, -s FILE       Path to selection FASTQ files (e.g., PF1.1_val_1.fq.gz)
+    --control, -c1 FILE         Path to control FASTQ files (e.g., PF4.1_val_1.fq.gz)
+    --selection, -s1 FILE       Path to selection FASTQ files (e.g., PF1.1_val_1.fq.gz)
     --outdir, -o DIR           Output directory
 
 Optional:
