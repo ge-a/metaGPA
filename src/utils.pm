@@ -22,15 +22,6 @@ our @EXPORT_OK = qw(make_dir
                 parse_bed
                 get_DNA);
 
-sub main {
-    # die "Usage: $0 dir1 dir2 ... output_dir\n" unless @ARGV >= 2;
-    # my $out_dir = pop @ARGV;
-    # my @dirs = @ARGV;
-    my $out_dir = "appended_phage_test";
-    my @dirs = ("phage_test", "phage_test_2", "phage_test_3");
-    append_assemblies(@dirs, $out_dir);
-}
-
 ### GENERAL USAGE
 sub make_dir {
     my ($dir) = @_;
