@@ -45,7 +45,7 @@ sub parse_arguments {
 
     GetOptions(
         "command=s" => \$command,
-        "subhelp|sh"   => \$subhelp,
+        "subhelp|sh"   => \my $subhelp,
         "help|h"    => \my $help,
     ) or usage();
 
