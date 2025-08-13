@@ -102,6 +102,7 @@ Usage: perl $0 --pfam pfam_tab --out output_file [options]
 Required:
     --pfam FILE              Path to Pfam-A.hmm file
     --out FILE               Output file name
+    --enrichment_txt FILE    Path to enrichment file (optional)
 
 Optional:
     --cutoff FLOAT           Cutoff value for enrichment analysis (default: 3)
@@ -112,7 +113,6 @@ Optional:
     --pfam_cutoff FLOAT      Pfam E-value cutoff for matches (default: no cutoff)
                              e.g., use 1e-7 for stringent matches
     --pfam_number INT        Minimum number of instances of a Pfam to consider (default: 0)
-    --enrichment_txt FILE    Path to enrichment file (optional)
     --help, -h               Show this help message
 
 Example:

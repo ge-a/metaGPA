@@ -50,18 +50,23 @@ Usage: $0 [options]
 
 Required:
     --fasta FILE          Combined assembly FASTA file (AA) 
-    --pfam_hit FILE       PFAM hit tab file with position of pfam
-    --enrichment_txt FILE Enrichment info txt file
-    --out                 output dir
+    --pfam-hit FILE       PFAM hit tab file with position of pfam
+    --enrichment-txt FILE Enrichment info txt file
+    --txt-out  FILE       Name of the txt file to output the PFAM domain data to
+    --tree-out DIR        Name of the directory to dump files created from this process
 Optional:
-    --read_count_min INT Minimum total read number (default: 100)
-    --contig_min INT     Minimum contig length (bp, default: 100)
+    --read-count_min INT Minimum total read number (default: 100)
+    --contig-min INT     Minimum contig length (bp, default: 100)
     --cutoff FLOAT       Enrichment cutoff (default: 10)
+    --mode STRING        mode to run the program, qsub or fork (default: fork) 
+    --parse-tree STRING  Path to the tree parsing script
+    --forks STRING       Number of forks to run the script with in forking mode (default: 4)
+    --domain STRING      Internal usage for running the qsub command, does not need to be specified manually
 
 Example:
     $0 --fasta combined.faa \\
-       --pfam_hit pfamhit.tab \\
-       --enrichment_txt enrichment_info.txt \\
+       --pfam-hit pfamhit.tab \\
+       --enrichment-txt enrichment_info.txt \\
        --read_count_min 100 \\
        --contig_min 100 \\
        --cutoff 10
