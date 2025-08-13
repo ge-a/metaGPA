@@ -5,6 +5,8 @@ use Cwd;
 use Getopt::Long qw(GetOptions);
 use Bio::SeqUtils;
 use Bio::SeqIO;
+use FindBin qw($Bin);
+use lib File::Spec->catdir($Bin, "..");
 use utils qw(parse_pfam);
 
 exit main();

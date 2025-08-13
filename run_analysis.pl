@@ -20,12 +20,10 @@ sub main {
         parse_tree => "src/analysis/parse_tree.pl",
         residue_analysis => "src/analysis/residue_analysis.pl",
     );
-
     unless ($command && exists $script_map{$command}) {
         print STDERR "Unknown or missing command: $command\n";
         usage();
     }
-
     my $script_path = $script_map{$command};
     if ($subhelp) {
         my $cmd = "perl $script_path --help";
@@ -42,7 +40,7 @@ sub main {
 sub parse_arguments {
     my $command;
     my @extra_args;
-
+    Getopt::Long::Configure("pass_through");
     GetOptions(
         "command=s" => \$command,
         "subhelp|sh"   => \my $subhelp,

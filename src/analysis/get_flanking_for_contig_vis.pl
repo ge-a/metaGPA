@@ -3,6 +3,8 @@ use strict;
 use warnings;
 use Getopt::Long qw(GetOptions);
 use Bio::SeqIO;
+use FindBin qw($Bin);
+use lib File::Spec->catdir($Bin, "..");
 use utils qw(get_DNA);
 
 exit main();

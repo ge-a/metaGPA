@@ -3,6 +3,8 @@ use strict;
 use warnings;
 use Getopt::Long qw(GetOptions);
 use Bio::SeqIO;
+use FindBin qw($Bin);
+use lib File::Spec->catdir($Bin, "..");
 use utils qw(parse_enrichment_info);
 
 exit main();
@@ -80,6 +82,7 @@ sub select_contigs_by_pfam {
         chomp $line;
         $line =~ s/ +/&/g;
         my @tmp = split /\&/, $line;
+        next unless $tmp[0] =~ /^NODE_\d+_length_\d+_(selection|control)-\d+[FR]$/;
         my $domain = $tmp[4];
         next unless $domain eq $config->{pfam};
         my $contig = $tmp[0];
@@ -122,7 +125,7 @@ sub extract_gff_features {
 			$contig =~ /(NODE_\d+)_.*/;
 			my $contig_name = $1;
 			$contig =~ /-(\d)([FR])$/;
-			my $enrichment = $enrichment_info->{$contig}[2]
+			my $enrichment = $enrichment_info->{$contig}[2];
 			my $frame = $1;
 			my $orientation = "+";
 			my $sens = $2;
