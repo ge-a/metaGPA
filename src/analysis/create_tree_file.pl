@@ -24,8 +24,11 @@ sub main {
         $config->{read_count_min},
         $config->{contig_min}
     );
-
-    my $checkpoint_file = 'completed_domains.txt';
+    my $tree_dir = $config->{out}.'/trees';
+    my $checkpoint_file = $config->{out}.'/completed_domains.txt';
+    my $log_dir = $config->{out}.'/logs';
+    make_path($tree_dir) unless -d $tree_dir;
+    make_path($log_dir) unless -d $log_dir;
     my %completed = load_checkpoint($checkpoint_file);
 
     if ($config->{mode} eq 'fork') {
@@ -33,6 +36,7 @@ sub main {
     } elsif ($config->{mode} eq 'qsub') {
         run_qsub_mode($config, $pfam_list, \%completed);
     } elsif ($config->{mode} eq 'single') {
+        print("SINGLE");
         run_single_mode($config, $pfam_list);
     } else {
         die "Invalid mode: $config->{mode}";
@@ -74,21 +78,22 @@ sub parse_args {
         mode           => "fork",
         parse_tree     => "$Bin/parse_tree.py",
         file_prefix    => "",
-        domain         => undef,   # <--- add this
+        domain         => undef,
     );
 
     GetOptions(
         "fasta=s"          => \$config{fasta},
-        "pfam_hit=s"       => \$config{pfam_hit},
-        "enrichment_txt=s" => \$config{enrichment_txt},
-        "parse_tree=s"     => \$config{parse_tree},
+        "pfam-hit=s"       => \$config{pfam_hit},
+        "enrichment-txt=s" => \$config{enrichment_txt},
+        "parse-tree=s"     => \$config{parse_tree},
         "mode=s"           => \$config{mode},
-        "read_count_min=i" => \$config{read_count_min},
-        "contig_min=i"     => \$config{contig_min},
-        "out=s"            => \$config{out},
-        "file_prefix=s"    => \$config{file_prefix},
+        "read-count_min=i" => \$config{read_count_min},
+        "contig-min=i"     => \$config{contig_min},
+        "txt-out=s"        => \$config{t_out},
+        "tree-out=s"       => \$config{out},
+        "file-prefix=s"    => \$config{file_prefix},
         "cutoff=f"         => \$config{cutoff},
-        "domain=s"         => \$config{domain},   # <--- add this
+        "domain=s"         => \$config{domain},
         "help|h"           => \$config{help},
     ) or usage();
 
@@ -173,12 +178,15 @@ sub run_ks_test_tree {
     } else {
         $out_prefix = $pfam;
     }
-    $out_prefix = File::Spec->catfile($config->{out}, $out_prefix);
+    $out_prefix = File::Spec->catfile($config->{out}."/trees/", $out_prefix);
     my $out_fasta   = "$out_prefix\_not_aligned.fasta";
     my $out_aligned = "$out_prefix\_aligned.fasta";
     my $out_tree    = "$out_prefix\_aligned.tree";
+    my $out_mapping = "$out_prefix\_mapping.txt";
 
     open(my $fh, ">", $out_fasta) or die "can't open $out_fasta\n";
+    open(my $mh, ">", $out_mapping) or die "can't open $out_mapping\n";
+    print $mh "name\tleaf_dot_color\tleaf_label_color\tbar1_height\tbar1_gradient\n";
     my ($selected, $unselected) = (0, 0);
     foreach my $record (@{$pfam2seqs{$pfam}}) {
         my $seq = $record->{seq};
@@ -187,14 +195,19 @@ sub run_ks_test_tree {
         if ($enrichment > $config->{cutoff}) {
             $selected++;
             $id = "S_" . $selected;
+            my $name = $id."_".$enrichment;
+            print $mh "$name\tbp_green\tptm_rose\t$enrichment\tPurples\n";
         } else {
             $unselected++;
             $id = "unselected_" . $unselected;
+            my $name = $id."_".$enrichment;
+            print $mh "$name\tk_grey\tptm_sand\t$enrichment\tPurples\n";
         }
         my $name = $id . "_" . $enrichment;
         print $fh ">$name\n$seq\n";
     }
     close $fh;
+    close $mh;
 
     my $cmd_align = "mafft --maxiterate 1000 --localpair $out_fasta > $out_aligned";
     my $cmd_tree  = "FastTree -gamma $out_aligned > $out_tree";
@@ -250,7 +263,7 @@ sub run_fork_mode {
             my $pfamname  = $pfam_list->{$domain}{name};
             my $tree_file = run_ks_test_tree($config, $domain);
             my $result;
-            if ($instances > 20 && defined $tree_file && -e $tree_file) {
+            if ($instances > 0 && defined $tree_file && -e $tree_file) {
                 my $command1 = "python $config->{parse_tree} $tree_file";
                 my $output = `$command1`;
                 if ($? == 0) {
@@ -271,13 +284,13 @@ sub run_fork_mode {
 
     $pm->wait_all_children;
     close $chk_out;
-    write_tree_summary('PF4_tree_eval.txt', \%domain_to_output);
+    write_tree_summary($config->{out}."/".$config->{t_out}.".txt", \%domain_to_output);
 }
 
 sub run_qsub_mode {
     my ($config, $pfam_list, $completed) = @_;
 
-    my $list_file = "pfam_domains.txt";
+    my $list_file = $config->{out}."/pfam_domains.txt";
     open my $fh, '>', $list_file or die "Can't write $list_file: $!";
     my @domains;
 
@@ -289,14 +302,27 @@ sub run_qsub_mode {
     close $fh;
 
     my $total = scalar @domains;
-    my $wrapper_script = "run_tree_array.sh";
+    if ($total == 0) {
+        print "No new domains to process.\n";
+        return;
+    }
 
+    my $wrapper_script = "run_tree_array.sh";
     open my $wrap, '>', $wrapper_script or die "Can't write $wrapper_script: $!";
-    print $wrap generate_qsub_script($config, $total);
+    print $wrap generate_qsub_script($config);
     close $wrap;
 
     print "\nJob array script written to $wrapper_script\n";
-    print "Submit with: qsub $wrapper_script\n";
+    print "Submitting array job with $total tasks...\n";
+
+    my $qsub_cmd = "qsub -t 1-$total $wrapper_script";
+    my $result = system($qsub_cmd);
+
+    if ($result == 0) {
+        print "Job array submitted successfully.\n";
+    } else {
+        warn "Failed to submit job array with command: $qsub_cmd\n";
+    }
 }
 
 sub run_single_mode {
@@ -308,11 +334,10 @@ sub run_single_mode {
     my $instances = $pfam_list->{$domain}{instance};
     my $pfamname  = $pfam_list->{$domain}{name};
     my $tree_file = run_ks_test_tree($config, $domain);
-
     if ($instances > 20 && defined $tree_file && -e $tree_file) {
         my $output = `python $config->{parse_tree} $tree_file`;
         if ($? == 0) {
-            write_tree_summary('PF4_tree_eval.txt', {
+            write_tree_summary($config->{out}."/".$config->{t_out}.".txt", {
                 $domain => {
                     pfamname => $pfamname,
                     output   => $output
@@ -327,35 +352,41 @@ sub run_single_mode {
 }
 
 sub generate_qsub_script {
-    my ($config, $total) = @_;
+    my ($config) = @_;
+    my $log_dir = "$config->{out}/logs";
 
     return qq{
 #!/bin/bash
-#$ -cwd
-#$ -j y
-#$ -S /bin/bash
-#$ -pe smp 24
-#$ -l ram=250G
+#\$ -cwd
+#\$ -j y
+#\$ -S /bin/bash
+#\$ -pe smp 24
+#\$ -l ram=250G
+#\$ -o $log_dir
+#\$ -e $log_dir
 
-DOMAIN=\$(sed -n "\${SGE_TASK_ID}p" pfam_domains.txt)
-
-perl run_tree_builder.pl \\
+DOMAIN=\$(sed -n "\${SGE_TASK_ID}p" $config->{out}/pfam_domains.txt)
+mamba activate
+mamba activate /data/age/miniforge3/envs/MetaGPA
+perl src/analysis/create_tree_file.pl \\
     --domain \$DOMAIN \\
     --mode single \\
     --fasta "$config->{fasta}" \\
-    --pfam_hit "$config->{pfam_hit}" \\
-    --enrichment_txt "$config->{enrichment_txt}" \\
-    --out "$config->{out}" \\
-    --parse_tree "$config->{parse_tree}" \\
+    --pfam-hit "$config->{pfam_hit}" \\
+    --enrichment-txt "$config->{enrichment_txt}" \\
+    --tree-out "$config->{out}" \\
+    --txt-out "$config->{t_out}" \\
+    --parse-tree "$config->{parse_tree}" \\
     --cutoff "$config->{cutoff}" \\
-    --read_count_min "$config->{read_count_min}" \\
-    --contig_min "$config->{contig_min}"
+    --read-count_min "$config->{read_count_min}" \\
+    --contig-min "$config->{contig_min}"
 };
 }
 
 sub write_tree_summary {
     my ($file, $data) = @_;
-    open my $fh, '>', $file or die "Could not open $file: $!";
+    my $mode = (-e $file) ? '>>' : '>';  
+    open my $fh, $mode, $file or die "Could not open $file: $!";
     foreach my $domain (sort keys %$data) {
         my $pfamname = $data->{$domain}{pfamname};
         my $output   = $data->{$domain}{output};
