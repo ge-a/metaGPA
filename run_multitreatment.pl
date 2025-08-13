@@ -153,6 +153,7 @@ sub parse_arguments {
             do_mapping => "",
             do_enrichment => "",
         },
+        lite => "none",
         mapping_func => "bwa", # add command line option to specify mapping function
         cutoff => 3,
     );
@@ -169,12 +170,13 @@ sub parse_arguments {
         "selection_1|s1=s@" => \$config{input}{selection_1},
         "control_2|c2=s" => \$config{input}{control_2},
         "selection_2|s2=s@" => \$config{input}{selection_2},
+        "lite|l"  => \$config{lite},
         "outdir|o=s" => \$config{dirs}{output},
         "cutoff|c=f" => \$config{cutoff},
         "help|h" => \$config{help}
     ) or usage();
 
-    $config{dirs}{output} = make_unique_path($config{dirs}{output},
+    $config{dirs}{output} = make_unique_path($config{dirs}{output}, $config{lite},
                                                 $config{commands}{do_assembly}, 
                                                 $config{commands}{do_annotation}, 
                                                 $config{commands}{do_mapping}, 
