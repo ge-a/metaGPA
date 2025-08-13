@@ -4,6 +4,7 @@ use Getopt::Long;
 use POSIX ":sys_wait_h";
 use FindBin qw($Bin);
 use File::Spec;
+use File::Basename;
 use lib File::Spec->catdir($Bin, "src");
 use utils qw(make_dir 
             process_fastq 
@@ -29,8 +30,7 @@ sub main {
     my $selection_1 = $config->{input}{selection_1};
     my $control2 = (defined $config->{input}{control_2}) ? $config->{input}{control_2} : "";
     my $selection_2 = (defined $config->{input}{selection_2}) ? $config->{input}{selection_2} : "";
-    my $prefix = $control_1;
-    $prefix =~ s/.1_val_1.fq.gz//; $prefix =~ s/.*\///g;
+    (my $prefix = basename($control_1)) =~ s/\.[^.]+(?:\.[^.]+)*$//;
         
     # pass control1/2 and selection1/2 to process_fastq if 2 is empty str then we generate the file ourselves
     $control_1, $control2 = process_fastq($control_1, $control2, $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
@@ -38,10 +38,9 @@ sub main {
     # enforce in readme that if 2 file unspecified then must have same basename as 1 file with 1 replaced by 2
     # pass both files into assembly and mapping
 
-    my $generic_control = $control_1;
+    my $generic_control = $prefix;
     my $generic_selection = $selection_1;
-    $generic_control =~ s/.1_val_1.fq.gz//; $generic_control =~ s/.*\///g; # see if we can avoid this hard coded structure
-    $generic_selection =~ s/.1_val_1.fq.gz//; $generic_selection =~ s/.*\///g;  
+    ($generic_selection = basename($generic_selection)) =~ s/\.[^.]+(?:\.[^.]+)*$//;
 
     my $assembly_path = File::Spec->catfile($Bin, "src", "assembly", "assembly.pl");
     my $mapping_path = File::Spec->catfile($Bin, "src", "mapping", "mapping.pl");
