@@ -79,6 +79,7 @@ sub parse_args {
         parse_tree     => "$Bin/parse_tree.py",
         file_prefix    => "",
         domain         => undef,
+        num_forks      => 4,
     );
 
     GetOptions(
@@ -94,6 +95,7 @@ sub parse_args {
         "file-prefix=s"    => \$config{file_prefix},
         "cutoff=f"         => \$config{cutoff},
         "domain=s"         => \$config{domain},
+        "forks=s"          => \$config{num_forks},
         "help|h"           => \$config{help},
     ) or usage();
 
@@ -234,10 +236,9 @@ sub load_checkpoint {
 sub run_fork_mode {
     my ($config, $pfam_list, $completed, $checkpoint_file) = @_;
 
-    my $max_procs = 4;
     my %domain_to_output;
     open my $chk_out, '>>', $checkpoint_file or die "Can't write $checkpoint_file: $!";
-    my $pm = Parallel::ForkManager->new($max_procs);
+    my $pm = Parallel::ForkManager->new($config->{num_forks});
 
     $pm->run_on_finish(
         sub {
@@ -263,7 +264,7 @@ sub run_fork_mode {
             my $pfamname  = $pfam_list->{$domain}{name};
             my $tree_file = run_ks_test_tree($config, $domain);
             my $result;
-            if ($instances > 0 && defined $tree_file && -e $tree_file) {
+            if ($instances > 20 && defined $tree_file && -e $tree_file) {
                 my $command1 = "python $config->{parse_tree} $tree_file";
                 my $output = `$command1`;
                 if ($? == 0) {
@@ -307,7 +308,7 @@ sub run_qsub_mode {
         return;
     }
 
-    my $wrapper_script = "run_tree_array.sh";
+    my $wrapper_script = "$config->{out}/run_tree_array.sh";
     open my $wrap, '>', $wrapper_script or die "Can't write $wrapper_script: $!";
     print $wrap generate_qsub_script($config);
     close $wrap;
