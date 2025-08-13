@@ -95,13 +95,14 @@ sub usage {
 Usage: $0 [options]
 
 Required:
-    --control-reads-1 FILE      Forward reads for control sample
-    --selection-reads-1 FILE    Forward reads for selection sample
+    --control-reads-1 FILE     Forward reads for control sample
+    --selection-reads-1 FILE   Forward reads for selection sample
     --output-dir DIR           Output directory path
 
 Optional:
     --control-reads-2 FILE     Reverse reads for control sample (default: auto-detect)
     --selection-reads-2 FILE   Reverse reads for selection sample (default: auto-detect)
+    --prefix  STRING           Prefix of the control file name
     --mapping-func FUNC        Mapping function to use (default: bwa)
     --help                     Show this help message
 

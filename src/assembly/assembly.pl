@@ -106,16 +106,16 @@ Usage: $0 [options]
 Required:
     --control-reads-1 FILE    Forward reads for control sample
     --selection-reads-1 FILE  Forward reads for selection sample
-    --output-dir DIR         Output directory path
+    --output-dir DIR          Output directory path
 
 Optional:
     --control-reads-2 FILE    Reverse reads for control sample (default: constructed from forward reads)
     --selection-reads-2 FILE  Reverse reads for selection sample (default: constructed from forward reads)
     --assembler PROGRAM       Assembler program (default: metaspades.py)
-    --threads INT            Number of threads (default: 24)
-    --memory INT            Memory in GB (default: 900)
-    --min-length INT        Minimum contig length (default: 500)
-    --help                  Show this help message
+    --threads INT             Number of threads (default: 24)
+    --memory INT              Memory in GB (default: 900)
+    --min-length INT          Minimum contig length (default: 500)
+    --help                    Show this help message
 
 Example:
     $0 --control-reads-1 control_R1.fq.gz \\

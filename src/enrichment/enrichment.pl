@@ -58,8 +58,8 @@ sub usage {
 Usage: $0 [options]
 
 Required:
-    --generic-control FILE    Generic name for control sample (e.g., PF4.1)
-    --generic-selection FILE  Generic name for selection sample (e.g., PF1.1)
+    --generic-control FILE   Generic name for control sample (e.g., PF4.1)
+    --generic-selection FILE Generic name for selection sample (e.g., PF1.1)
     --prefix STRING          Prefix for output files
     --output-dir DIR         Output directory path
 
