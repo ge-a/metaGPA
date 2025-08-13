@@ -210,6 +210,8 @@ Optional:
     --enrichment, -E          Run enrichment analysis steps
     --control_2, -c2 FILE     Path to control FASTQ files opposite direction (e.g., PF4.2_val_2.fq.gz) (filename generated programatically if not specified)
     --selection_2, -s2 FILES  Path to selection FASTQ files opposite direction (e.g., PF1.2_val_2.fq.gz) (filename generated programatically if not specified)
+    --threads  INTEGER        Number of threads to be ran on
+    --memory   INTEGER        Amount of memory to be allocated
     --lite, l                 Overwrite an existing one if exists dir with same path instead of creating a new output dir with _{num} appended (default to create new dir)
     --cutoff -c FLOAT         Cutoff value for enrichment analysis (default: 3), if -1 then will be calculated from distribution
     --help, -h                Show this help message
