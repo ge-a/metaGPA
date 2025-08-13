@@ -149,14 +149,13 @@ sub parse_arguments {
         "cutoff|c=f" => \$config{cutoff},
         "help|h" => \$config{help}
     ) or usage();
-
+    usage() if $config{help};
     $config{dirs}{output} = make_unique_path($config{dirs}{output}, $config{lite},
                                                 $config{commands}{do_assembly}, 
                                                 $config{commands}{do_annotation}, 
                                                 $config{commands}{do_mapping}, 
                                                 $config{commands}{do_enrichment});
     make_dir($config{dirs}{output});
-    usage() if $config{help};
     usage() if (!defined($config{input}{control_1}) || 
                 !defined($config{input}{selection_1}));
     return \%config;
@@ -177,10 +176,11 @@ Optional:
     --annotation, -AN         Run annotation steps
     --mapping, -M             Run mapping steps
     --enrichment, -E          Run enrichment analysis steps
-    --control_2, -c2 FILE     Path to control FASTQ files (e.g., PF4.1_val_1.fq.gz)
-    --selection_2, -s2 FILE   Path to selection FASTQ files (e.g., PF1.1_val_1.fq.gz)
+    --control_2, -c2 FILE     Path to control FASTQ files opposite direction (e.g., PF4.2_val_2.fq.gz) (filename generated programatically if not specified)
+    --selection_2, -s2 FILE   Path to selection FASTQ files opposite direction (e.g., PF1.2_val_2.fq.gz) (filename generated programatically if not specified)
     --threads                 Number of threads to be ran on
     --memory                  Amount of memory to be allocated
+    --lite, l                 Overwrite an existing one if exists dir with same path instead of creating a new output dir with _{num} appended (default to create new dir)
     --cutoff -c FLOAT         Cutoff value for enrichment analysis (default: 3), if -1 then will be calculated from distribution
     --help, -h                Show this help message
 

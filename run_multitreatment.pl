@@ -85,6 +85,8 @@ sub main {
         " --control-reads-2 ".$control_2.
         " --selection-reads-1 ".$selection_1_str.
         " --selection-reads-2 ".$selection_2_str.
+        " --threads ".$config->{threads}.
+        " --memory ".$config->{memory}.
         " --num-selections ".$num_selections.
         " --output-dir ".$config->{dirs}{output};
 
@@ -156,6 +158,8 @@ sub parse_arguments {
         lite => "none",
         mapping_func => "bwa", # add command line option to specify mapping function
         cutoff => 3,
+        memory => 500,
+        threads => 24
     );
     my $set_trim = sub { $config{commands}{do_trim} = "trim_galore" };
 
@@ -170,19 +174,20 @@ sub parse_arguments {
         "selection_1|s1=s@" => \$config{input}{selection_1},
         "control_2|c2=s" => \$config{input}{control_2},
         "selection_2|s2=s@" => \$config{input}{selection_2},
+        "threads=i" => \$config{threads},
+        "memory=i" => \$config{memory},
         "lite|l"  => \$config{lite},
         "outdir|o=s" => \$config{dirs}{output},
         "cutoff|c=f" => \$config{cutoff},
         "help|h" => \$config{help}
     ) or usage();
-
+    usage() if $config{help};
     $config{dirs}{output} = make_unique_path($config{dirs}{output}, $config{lite},
                                                 $config{commands}{do_assembly}, 
                                                 $config{commands}{do_annotation}, 
                                                 $config{commands}{do_mapping}, 
                                                 $config{commands}{do_enrichment});
     make_dir($config{dirs}{output});
-    usage() if $config{help};
     usage() if (!defined($config{input}{control_1}) || 
                 !defined($config{input}{selection_1}));
     return \%config;
@@ -193,8 +198,8 @@ sub usage {
 Usage: $0 [options]
 
 Required:
-    --control, -c1 FILE         Path to control FASTQ files (e.g., PF4.1_val_1.fq.gz)
-    --selection, -s1 FILE       Path to selection FASTQ files (e.g., PF1.1_val_1.fq.gz)
+    --control_1, -c1 FILE      Path to control FASTQ files (e.g., PF4.1_val_1.fq.gz)
+    --selection_1, -s1 FILE    Path to selection FASTQ files (e.g., PF1.1_val_1.fq.gz)
     --outdir, -o DIR           Output directory
 
 Optional:
@@ -203,14 +208,18 @@ Optional:
     --annotation, -AN         Run annotation steps
     --mapping, -M             Run mapping steps
     --enrichment, -E          Run enrichment analysis steps
+    --control_2, -c2 FILE     Path to control FASTQ files opposite direction (e.g., PF4.2_val_2.fq.gz) (filename generated programatically if not specified)
+    --selection_2, -s2 FILES  Path to selection FASTQ files opposite direction (e.g., PF1.2_val_2.fq.gz) (filename generated programatically if not specified)
+    --lite, l                 Overwrite an existing one if exists dir with same path instead of creating a new output dir with _{num} appended (default to create new dir)
     --cutoff -c FLOAT         Cutoff value for enrichment analysis (default: 3), if -1 then will be calculated from distribution
     --help, -h                Show this help message
 
 Example:
-    $0 --control PF4.1_val_1.fq.gz \\
-       --selection PF1.1_val_1.fq.gz \\
+    $0 --control_1 PF4.1_val_1.fq.gz \\
+       --selection_1 PF1.1_val_1.fq.gz \\
+       --selection_1 PF2.1_val_1.fq.gz \\
+       --selection_1 PF3.1_val_1.fq.gz \\
        --outdir results \\
-       --assembly --mapping --enrichment
 EOF
     exit(1);
 }

@@ -48,7 +48,9 @@ sub get_DNA {
 ### FOR PIPELINE WORKFLOW 
 sub make_unique_path {
     my ($path, $lite, $assemble, $annotate, $map, $enrich) = @_;
-
+    if ($path eq "") {
+        return
+    }
     my $output_dir = "output";
     make_dir($output_dir);
 
