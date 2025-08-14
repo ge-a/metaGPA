@@ -150,6 +150,18 @@ sub parse_arguments {
         "help|h" => \$config{help}
     ) or usage();
     usage() if $config{help};
+
+    my @steps = (
+        $config{commands}{do_assembly},
+        $config{commands}{do_annotation},
+        $config{commands}{do_mapping},
+        $config{commands}{do_enrichment}
+    );
+    my $num_enabled = grep { $_ && $_ ne "none" && $_ ne "" } @steps;
+    if ($num_enabled > 0 && $num_enabled < 4) {
+        $config{lite} = "lite";
+    }
+
     $config{dirs}{output} = make_unique_path($config{dirs}{output}, $config{lite},
                                                 $config{commands}{do_assembly}, 
                                                 $config{commands}{do_annotation}, 
