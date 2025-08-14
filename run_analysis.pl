@@ -19,6 +19,7 @@ sub main {
         get_gff => "src/analysis/get_gff.pl",
         parse_tree => "src/analysis/parse_tree.pl",
         residue_analysis => "src/analysis/residue_analysis.pl",
+        translate_orf => "src/analysis/translate_orf.pl",
     );
     unless ($command && exists $script_map{$command}) {
         print STDERR "Unknown or missing command: $command\n";
