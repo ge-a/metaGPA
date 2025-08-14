@@ -90,9 +90,9 @@ sub write_commands {
     my $coverage_bed = $config->{dirs}{output}."/mapping/".$prefix."control_versus_selection_coverage.bed";
     my $hmmer2 = $config->{dirs}{output}."/annotation/".$prefix."control_and_selected_hmmer_format.tab";
     my $hmmer4 = $config->{dirs}{output}."/annotation/".$prefix."control_and_selected_hmmer_format_TIGRFAM.tab";
-    my $pfam = $config->{dirs}{enrichment}."/".$prefix."control_and_selected_hmmer_format_PFAM.enriched";
-    my $tigrfam = $config->{dirs}{enrichment}."/".$prefix."control_and_selected_hmmer_format_TIGRFAM.enriched";
-    my $enrichment_info = $config->{dirs}{enrichment}."/".$prefix."_enrichment_info_c$config->{cutoff}.txt";
+    my $pfam = $config->{dirs}{enrichment}."/".$prefix."control_and_selected_hmmer_format_PFAM_c$config->{cutoff}.enriched";
+    my $tigrfam = $config->{dirs}{enrichment}."/".$prefix."control_and_selected_hmmer_format_TIGRFAM_c$config->{cutoff}.enriched";
+    my $enrichment_info = $config->{dirs}{enrichment}."/".$prefix."_enrichment_info.txt";
     
     my $num_selection = $config->{num_selections};
     my @generic_selections = split(/,/,$config->{input}{selection});
