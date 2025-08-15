@@ -8,6 +8,7 @@ from typing import List, Optional
 from Bio import Phylo
 from io import StringIO
 
+# Create internal tree data structure for parsing Newick format trees
 class TreeNode:
     def __init__(self, name: str = "", parent: Optional['TreeNode'] = None):
         self.name = name
@@ -31,13 +32,14 @@ class TreeNode:
         self.children.append(child)
         child.parent = self
 
-
+# Analyzer class to handle the parsing and analysis of TreeNode structures
 class TreeAnalyzer:
     def __init__(self, newick_str: str):
         self.root = self.parse_newick_to_tree(newick_str)
         self.population_mean = 0.0
         self.ranked_nodes: List[TreeNode] = []
 
+    # Parse Newick format string into a TreeNode structure
     def parse_newick_to_tree(self, newick_str: str) -> TreeNode:
         handle = StringIO(newick_str)
         tree = Phylo.read(handle, "newick")
@@ -51,6 +53,7 @@ class TreeAnalyzer:
 
         return convert(tree.clade)
 
+    # Compute enrichment percentages for each node in the tree
     def compute_enrichment(self):
         def compute_node(node: TreeNode):
             if node.is_leaf():
@@ -82,6 +85,7 @@ class TreeAnalyzer:
         post_order_traversal(self.root)
         self.population_mean = self.root.children_enrichment_perc or 0.0
 
+    # Assign p-values to each node based on selected and unselected leaves
     def assign_p_values(self):
         self.ranked_nodes.clear()
 
@@ -103,6 +107,52 @@ class TreeAnalyzer:
         assign(self.root)
         self.ranked_nodes.sort(key=lambda n: n.p_value)
     
+    # Writes TT files with internal node statistics
+    def write_tt(self, cutoff: float, output_path: str):
+        total_selected = self.root.selected_leaves
+        total_unselected = self.root.unselected_leaves
+
+        rows = []
+
+        def process_node(node: TreeNode):
+            if node.is_leaf():
+                return
+
+            count_above = node.selected_leaves
+            count_below = node.unselected_leaves
+
+            frac_above = (count_above / total_selected) * 100 if total_selected else 0
+            frac_below = (count_below / total_unselected) * 100 if total_unselected else 0
+
+            node_id = node.name
+            pval = node.p_value
+            pval_str = f"{pval:.4e}" if pval is not None else "NA"
+
+            # Collect data in a list (store pval as float or None for sorting)
+            rows.append({
+                "node_id": node_id,
+                "pval": pval,
+                "pval_str": pval_str,
+                "frac_above": frac_above,
+                "count_above": count_above,
+                "frac_below": frac_below,
+                "count_below": count_below,
+            })
+
+            for child in node.children:
+                process_node(child)
+
+        process_node(self.root)
+
+        # Sort rows by pval, placing 'NA' (None) at the end
+        rows.sort(key=lambda r: (float('inf') if r['pval'] is None else r['pval']))
+
+        with open(output_path, "w") as out:
+            out.write("Node_ID\tP_Value\t%AboveCutoff\tCountAbove\t%BelowCutoff\tCountBelow\n")
+            for r in rows:
+                out.write(f"{r['node_id']}\t{r['pval_str']}\t{r['frac_above']:.2f}\t{r['count_above']}\t{r['frac_below']:.2f}\t{r['count_below']}\n")
+
+    # Print top nodes based on p-value and selected leaves
     def print_top_nodes(self, top_n=10, min_selected_frac=0.7, output_file=None) -> Optional[float]:
         total_selected = self.root.selected_leaves
         count = 0
@@ -206,11 +256,12 @@ class TreeAnalyzer:
             plt.show()
         plt.close()
 
-
+# We only output a tree image if an output path is provided
 def main():
     parser = argparse.ArgumentParser(description="Parse a Newick .tree file and compute enrichment ratios.")
     parser.add_argument("tree_file", type=str, help="Path to the .tree Newick file")
     parser.add_argument("--output", type=str, help="Path to save the output image (e.g. output/tree.png)")
+    parser.add_argument("--write-tt", type=str, help="Write internal node stats to a .txt file")
 
     args = parser.parse_args()
 
@@ -220,6 +271,15 @@ def main():
     analyzer = TreeAnalyzer(newick_str)
     analyzer.compute_enrichment()
     analyzer.assign_p_values()
+
+    if args.write_tt is not None:
+        split_tt = args.write_tt.split(":")
+        domain = split_tt[0]
+        cutoff = split_tt[1]
+        output_dir_path = split_tt[2]
+        tt_output_path = output_dir_path + "/TT/" + domain + "_TT.txt"
+        analyzer.write_tt(cutoff=cutoff, output_path=tt_output_path)
+        print(f"Wrote internal node stats to: {tt_output_path}")
 
     if args.output:
         log_path = os.path.splitext(args.output)[0] + ".txt"
@@ -236,6 +296,7 @@ def main():
     log(f"Root unselected leaves: {analyzer.root.unselected_leaves}")
     log(f"Root enrichment perc: {analyzer.root.children_enrichment_perc:.4f}")
 
+    # Only prints the top nodes if an output file is provided
     lowest_p = analyzer.print_top_nodes(top_n=10, output_file=log_file)
 
     if args.output:

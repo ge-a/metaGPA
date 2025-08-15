@@ -4,6 +4,7 @@ use Cwd;
 use FindBin qw($Bin);
 use File::Spec;
 use Bio::SeqIO;
+use Bio::TreeIO;
 use Parallel::ForkManager;
 use File::Path qw(make_path);
 use File::Basename;
@@ -27,8 +28,10 @@ sub main {
     my $tree_dir = $config->{out}.'/trees';
     my $checkpoint_file = $config->{out}.'/completed_domains.txt';
     my $log_dir = $config->{out}.'/logs';
+    my $tt_dir = $config->{out}.'/TT';
     make_path($tree_dir) unless -d $tree_dir;
     make_path($log_dir) unless -d $log_dir;
+    make_path($tt_dir) unless -d $tt_dir;
     my %completed = load_checkpoint($checkpoint_file);
 
     if ($config->{mode} eq 'fork') {
@@ -194,6 +197,7 @@ sub run_ks_test_tree {
     open(my $fh, ">", $out_fasta) or die "can't open $out_fasta\n";
     open(my $mh, ">", $out_mapping) or die "can't open $out_mapping\n";
     print $mh "name\tleaf_dot_color\tleaf_label_color\tbar1_height\tbar1_gradient\n";
+    my @array_enrichment;
     my ($selected, $unselected) = (0, 0);
     foreach my $record (@{$pfam2seqs{$pfam}}) {
         my $seq = $record->{seq};
@@ -210,17 +214,20 @@ sub run_ks_test_tree {
             my $name = $id."_".$enrichment;
             print $mh "$name\tk_grey\tptm_sand\t$enrichment\tPurples\n";
         }
+        push @array_enrichment, $enrichment;
         my $name = $id . "_" . $enrichment;
         print $fh ">$name\n$seq\n";
     }
     close $fh;
     close $mh;
 
-    my $cmd_align = "mafft --maxiterate 1000 --localpair $out_fasta > $out_aligned";
-    my $cmd_tree  = "FastTree -gamma $out_aligned > $out_tree";
-    system($cmd_align);
-    system($cmd_tree);
-
+    if ($selected > 1 && $unselected > 1) {
+        my $cmd_align = "mafft --maxiterate 1000 --localpair $out_fasta > $out_aligned";
+        my $cmd_tree  = "FastTree -gamma $out_aligned > $out_tree";
+        system($cmd_align);
+        system($cmd_tree);
+    }
+    
     return $out_tree;
 }
 
@@ -269,8 +276,9 @@ sub run_fork_mode {
             my $pfamname  = $pfam_list->{$domain}{name};
             my $tree_file = run_ks_test_tree($config, $domain);
             my $result;
+            my $tt_in     = $domain.":".$config->{cutoff}.":".$config->{out};
             if ($instances > 20 && defined $tree_file && -e $tree_file) {
-                my $command1 = "python $config->{parse_tree} $tree_file";
+                my $command1 = "python $config->{parse_tree} $tree_file --write-tt $tt_in";
                 my $output = `$command1`;
                 if ($? == 0) {
                     print $chk_out "$domain\n";
@@ -340,8 +348,9 @@ sub run_single_mode {
     my $instances = $pfam_list->{$domain}{instance};
     my $pfamname  = $pfam_list->{$domain}{name};
     my $tree_file = run_ks_test_tree($config, $domain);
+    my $tt_in     = $domain.":".$config->{cutoff}.":".$config->{out};
     if ($instances > 20 && defined $tree_file && -e $tree_file) {
-        my $output = `python $config->{parse_tree} $tree_file`;
+        my $output = `python $config->{parse_tree} $tree_file --write-tt $tt_in`;
         if ($? == 0) {
             write_tree_summary($config->{out}."/".$config->{t_out}.".txt", {
                 $domain => {
