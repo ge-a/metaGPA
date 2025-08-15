@@ -69,7 +69,7 @@ A Dockerfile is provided for containerized installation and reproducibility.
    - You can mount additional volumes or set environment variables as needed.
 
 ## Usage
-
+Please note that this workflow will create a directory called "output" which stores all the outputted data files from each step of the pipeline. The directory name you pass into the output-dir option will be stored inside of this generated "output" directory. When passing in your output directories please do not specify a path but simply the name of the directory you would like to create as the program begins looking from inside this generated "output" dir. For example, if you would like to create an output-dir "PF4", but pass in "output/PF4" to the output-dir flag, the folder that is generated will be stored at relative path output/output/PF4, as the program takes into account the output dir automatically.
 ### Quick Start
 Here is a minimal example to get started with MetaGPA after installation:
 
