@@ -1,4 +1,4 @@
-# MetaGPA
+# MetaGPA2
 
 ## Table of Contents
 - [Overview](#overview)
