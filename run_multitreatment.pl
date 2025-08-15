@@ -2,6 +2,7 @@ use strict;
 use Cwd;
 use POSIX ":sys_wait_h";
 use FindBin qw($Bin);
+use File::Basename;
 use Getopt::Long;
 use POSIX ":sys_wait_h";
 use lib File::Spec->catdir($Bin, "src");
@@ -14,6 +15,7 @@ exit main();
 sub main {
     my $config = parse_arguments();
 
+    # If no steps are specified then we run all of them
     if (!$config->{commands}{do_assembly} && 
         !$config->{commands}{do_annotation} && 
         !$config->{commands}{do_mapping} && 
@@ -29,9 +31,7 @@ sub main {
     my $fastq_control2 = (defined $config->{input}{control_2}) ? {$config->{input}{control_2}} : "";
     my @fastq_selection1 = @{$config->{input}{selection_1}};
     my @fastq_selection2 = (defined $config->{input}{selection_2}) ? @{$config->{input}{selection_2}} : ();
-
-    my $prefix = $fastq_control1;
-    $prefix =~ s/.1_val_1.fq.gz//; $prefix =~ s/.*\///g;
+    (my $prefix = basename($fastq_control1)) =~ s/\.[^.]+(?:\.[^.]+)*$//; # generate general prefix 
 
     # Join lists into comma-separated strings for passing to assembly
     my ($control_1, $control_2);
@@ -62,13 +62,12 @@ sub main {
         $selection_2_str = join(",", @trimmed_selection2);
     }
 
-    my $generic_control = $fastq_control1;
-    $generic_control =~ s/.1_val_1.fq.gz//; $generic_control =~ s/.*\///g;
+    # Generic and Selection prefix generation
+    my $generic_control = $prefix;
     my @selection_files = split /,/, $selection_1_str;
     my @generic_selections = map {
-        my $name = $_;
-        $name =~ s/.1_val_1.fq.gz//;
-        $name =~ s/.*\///g;
+        my $name = basename($_); # Strip path
+        $name =~ s/\.[^.]+(?:\.[^.]+)*$//; # Remove all dot extensions
         $name;
     } @selection_files;
     my $selection_list = join(",", @generic_selections);

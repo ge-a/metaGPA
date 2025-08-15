@@ -15,6 +15,7 @@ exit main();
 sub main {
     my $config = parse_arguments();
 
+    # If no steps are specified then we run all of them
     if (!$config->{commands}{do_assembly} && 
         !$config->{commands}{do_annotation} && 
         !$config->{commands}{do_mapping} && 
@@ -30,17 +31,16 @@ sub main {
     my $selection_1 = $config->{input}{selection_1};
     my $control2 = (defined $config->{input}{control_2}) ? $config->{input}{control_2} : "";
     my $selection_2 = (defined $config->{input}{selection_2}) ? $config->{input}{selection_2} : "";
-    (my $prefix = basename($control_1)) =~ s/\.[^.]+(?:\.[^.]+)*$//;
+    (my $prefix = basename($control_1)) =~ s/\.[^.]+(?:\.[^.]+)*$//; # generate general prefix 
         
-    # pass control1/2 and selection1/2 to process_fastq if 2 is empty str then we generate the file ourselves
+    # pass control1 and 2 and selection1 and 2 to process_fastq if file 2 is empty str then we generate the file ourselves
     $control_1, $control2 = process_fastq($control_1, $control2, $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
     $selection_1, $selection_2 = process_fastq($selection_1, $selection_2, $prefix, $config->{dirs}{output}, $config->{commands}{do_trim});
     # enforce in readme that if 2 file unspecified then must have same basename as 1 file with 1 replaced by 2
-    # pass both files into assembly and mapping
 
-    my $generic_control = $prefix;
+    my $generic_control = $prefix; # general prefix
     my $generic_selection = $selection_1;
-    ($generic_selection = basename($generic_selection)) =~ s/\.[^.]+(?:\.[^.]+)*$//;
+    ($generic_selection = basename($generic_selection)) =~ s/\.[^.]+(?:\.[^.]+)*$//; # selection prefix
 
     my $assembly_path = File::Spec->catfile($Bin, "src", "assembly", "assembly.pl");
     my $mapping_path = File::Spec->catfile($Bin, "src", "mapping", "mapping.pl");
@@ -192,7 +192,7 @@ Optional:
     --selection_2, -s2 FILE   Path to selection FASTQ files opposite direction (e.g., PF1.2_val_2.fq.gz) (filename generated programatically if not specified)
     --threads  INTEGER        Number of threads to be ran on
     --memory   INTEGER        Amount of memory to be allocated
-    --lite, l                 Overwrite an existing one if exists dir with same path instead of creating a new output dir with _{num} appended (default to create new dir)
+    --lite, l                 Overwrite or append to existing dir if dir with same name exists (default off)
     --cutoff -c FLOAT         Cutoff value for enrichment analysis (default: 3), if -1 then will be calculated from distribution
     --help, -h                Show this help message
 

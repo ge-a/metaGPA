@@ -9,10 +9,11 @@ exit main();
 sub main {
     my $config = parse_arguments();
 
-    my $command = $config->{command};
-    my $subhelp = $config->{subhelp};
-    my @extra_args = @{$config->{extra_args}};
+    my $command = $config->{command}; # the command to be ran 
+    my $subhelp = $config->{subhelp}; # whether or not to show help for the post analysis script
+    my @extra_args = @{$config->{extra_args}}; # the arguments to the post analysis script
 
+    # Add paths to post analysis scripts to this map in order for them to be available from this script
     my %script_map = (
         create_tree_file => File::Spec->catfile($Bin, "src", "analysis", "create_tree_file.pl"),
         get_enriched_fasta_orf => File::Spec->catfile($Bin, "src", "analysis", "get_enriched_fasta_orf.pl"),
@@ -26,7 +27,9 @@ sub main {
         print STDERR "Unknown or missing command: $command\n";
         usage();
     }
-    my $script_path = $script_map{$command};
+    my $script_path = $script_map{$command}; 
+    
+    # run help message for post analysis script
     if ($subhelp) {
         my $cmd = "perl $script_path --help";
         print STDERR "Showing help for $command:\n";
