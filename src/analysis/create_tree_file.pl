@@ -25,6 +25,7 @@ sub main {
         $config->{read_count_min},
         $config->{contig_min}
     );
+    # create output directories for this tree file generation run
     my $tree_dir = $config->{out}.'/trees';
     my $checkpoint_file = $config->{out}.'/completed_domains.txt';
     my $log_dir = $config->{out}.'/logs';
@@ -34,12 +35,12 @@ sub main {
     make_path($tt_dir) unless -d $tt_dir;
     my %completed = load_checkpoint($checkpoint_file);
 
+    # Runs script based on mode you pick. Note that single mode runs from qsub
     if ($config->{mode} eq 'fork') {
         run_fork_mode($config, $pfam_list, \%completed, $checkpoint_file);
     } elsif ($config->{mode} eq 'qsub') {
         run_qsub_mode($config, $pfam_list, \%completed);
     } elsif ($config->{mode} eq 'single') {
-        print("SINGLE");
         run_single_mode($config, $pfam_list);
     } else {
         die "Invalid mode: $config->{mode}";
@@ -111,6 +112,7 @@ sub parse_args {
     return \%config;
 }
 
+# Parses pfam hit file getting all domains which meet read requirements
 sub parse_pfam {
     my ($file, $enrichment_txt, $read_min, $length_min) = @_;
     my %result;
@@ -141,6 +143,7 @@ sub parse_pfam {
     return \%result;
 }
 
+# Creates newick tree, domain mapping txt, aligned fasta files 
 sub run_ks_test_tree {
     my ($config, $pfamname) = @_;
 
@@ -245,6 +248,7 @@ sub load_checkpoint {
     return %completed;
 }
 
+# Runs tree generation by creating an input_var number of forks to run tree alignments on
 sub run_fork_mode {
     my ($config, $pfam_list, $completed, $checkpoint_file) = @_;
 
@@ -277,6 +281,7 @@ sub run_fork_mode {
             my $tree_file = run_ks_test_tree($config, $domain);
             my $result;
             my $tt_in     = $domain.":".$config->{cutoff}.":".$config->{out};
+            # Run python analysis script on newick tree if requirements are met
             if ($instances > 20 && defined $tree_file && -e $tree_file) {
                 my $command1 = "python $config->{parse_tree} $tree_file --write-tt $tt_in";
                 my $output = `$command1`;
@@ -301,6 +306,7 @@ sub run_fork_mode {
     write_tree_summary($config->{out}."/".$config->{t_out}.".txt", \%domain_to_output);
 }
 
+# Runs tree generation on HPC by submitting jobs to HPC -> may need some amount of buffering on submission.
 sub run_qsub_mode {
     my ($config, $pfam_list, $completed) = @_;
 
@@ -339,6 +345,7 @@ sub run_qsub_mode {
     }
 }
 
+# Runs the domains that are submitted via qsub
 sub run_single_mode {
     my ($config, $pfam_list) = @_;
     my $domain = $config->{domain};
@@ -366,6 +373,7 @@ sub run_single_mode {
     }
 }
 
+# Creates the qsub script used to submit jobs to the HPC
 sub generate_qsub_script {
     my ($config) = @_;
     my $log_dir = "$config->{out}/logs";
@@ -398,6 +406,7 @@ perl src/analysis/create_tree_file.pl \\
 };
 }
 
+# Writes the summary output file
 sub write_tree_summary {
     my ($file, $data) = @_;
     my $mode = (-e $file) ? '>>' : '>';  
