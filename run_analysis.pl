@@ -2,7 +2,8 @@ use strict;
 use warnings;
 use Cwd;
 use Getopt::Long;
-
+use FindBin qw($Bin);
+use lib File::Spec->catdir($Bin, "src");
 exit main();
 
 sub main {
@@ -13,13 +14,13 @@ sub main {
     my @extra_args = @{$config->{extra_args}};
 
     my %script_map = (
-        create_tree_file => "src/analysis/create_tree_file.pl",
-        get_enriched_fasta_orf => "src/analysis/get_enriched_fasta_orf.pl",
-        get_flanking_for_contig_vis => "src/analysis/get_flanking_for_contig_vis.pl",
-        get_gff => "src/analysis/get_gff.pl",
-        parse_tree => "src/analysis/parse_tree.pl",
-        residue_analysis => "src/analysis/residue_analysis.pl",
-        translate_orf => "src/analysis/translate_orf.pl",
+        create_tree_file => File::Spec->catfile($Bin, "src", "analysis", "create_tree_file.pl"),
+        get_enriched_fasta_orf => File::Spec->catfile($Bin, "src", "analysis", "get_enriched_fasta_orf.pl"),
+        get_flanking_for_contig_vis => File::Spec->catfile($Bin, "src", "analysis", "get_flanking_for_contig_vis.pl"),
+        get_gff => File::Spec->catfile($Bin, "src", "analysis", "get_gff.pl"),
+        parse_tree => File::Spec->catfile($Bin, "src", "analysis", "parse_tree.pl"),
+        residue_analysis => File::Spec->catfile($Bin, "src", "analysis", "residue_analysis.pl"),
+        translate_orf => File::Spec->catfile($Bin, "src", "analysis", "translate_orf.pl"),
     );
     unless ($command && exists $script_map{$command}) {
         print STDERR "Unknown or missing command: $command\n";
