@@ -138,8 +138,8 @@ sub write_commands {
         $name =~ s/.*\///g;
         $name;
     } @selection_files;
-
-    my $generic = $config->{params}{prefix};
+    my $generic = $generic_control; $generic =~ s/control/experiment/;
+    #my $generic = $config->{params}{prefix};
     my $assembly_final = $config->{dirs}{output}."/assembly/".$generic."control_and_selected.nd.fasta";
 
     my $mapping_dir = $config->{dirs}{mapping};
