@@ -128,13 +128,15 @@ sub write_commands {
     my $num_selections = $config->{params}{num_selections};
 
     my $generic_control = $config->{input}{control_reads_1};
-    $generic_control =~ s/.1_val_1.fq.gz//;
+    #$generic_control =~ s/.1_val_1.fq.gz//;
+    $generic_control =~ s/\.[^.]+(?:\.[^.]+)*$//;
     $generic_control =~ s/.*\///g;
 
     my @selection_files = split /,/, $config->{input}{selection_reads_1};
     my @generic_selections = map {
         my $name = $_;
-        $name =~ s/.1_val_1.fq.gz//;
+        #$name =~ s/.1_val_1.fq.gz//;
+        $name =~ s/\.[^.]+(?:\.[^.]+)*$//;
         $name =~ s/.*\///g;
         $name;
     } @selection_files;
