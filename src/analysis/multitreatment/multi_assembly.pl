@@ -172,9 +172,16 @@ sub write_commands {
         $name;
     } @selection_files;
 
-    my $generic = $generic_control; $generic =~ s/control/experiment/;
-    my $generic_prefix = $config->{dirs}{assembly}."/".$generic;
+    #new :           
+    #my $generic = $generic_control; $generic =~ s/control/experiment/;                                                                                                                                                               
+    my $generic = $generic_control;                                                                                                  
+    $generic =~ s/\.[^.]+(?:\.[^.]+)*$//;
+    # end of new    
 
+
+
+    
+    my $generic_prefix = $config->{dirs}{assembly}."/".$generic;
     my $control_prefix =  $config->{dirs}{assembly}."/".$generic_control;
 
     my $assembly_final_info = $generic_prefix."control_and_selected.fasta";
